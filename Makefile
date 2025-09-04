@@ -27,6 +27,8 @@ CFLAGS += -I./src
 CFLAGS += -I./libraries/imgui-1.91.9b -I./libraries/imgui-1.91.9b/backends
 # Include MinHook.
 CFLAGS += -I./libraries/MinHook/include
+# Include Vulkan.
+CFLAGS += -I./libraries/vulkan/Include
 # Macros.
 #CFLAGS += -DNDEBUG
 
