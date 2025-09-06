@@ -1,3 +1,6 @@
+// ----------------------------------------------------------------------------
+// DLL entry point and initializer of HT's Mod Loader.
+// ----------------------------------------------------------------------------
 #include "dllmain.h"
 
 typedef LONG (WINAPI *PFN_RegEnumValueA)(
@@ -9,6 +12,7 @@ static PFN_RegEnumValueA fn_RegEnumValueA;
 static std::unordered_map<HKEY, DWORD> gRegKeys;
 static char gDllPath[MAX_PATH]
   , gLayerConfigPath[MAX_PATH];
+static HMODULE hWinHttp;
 
 /**
  * Get path to the dll and the layer config file.
@@ -30,7 +34,7 @@ static i32 initPaths(HMODULE hModule) {
  * Check if the key name is a Vulkan implicit layer list.
  */
 static i32 checkKeyName(HKEY key) {
-  HMODULE ntdll = ::GetModuleHandleA("ntdll.dll");
+  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
   PFN_NtQueryKey fn_NtQueryKey;
   DWORD size = 0;
   NTSTATUS result = STATUS_SUCCESS;
@@ -40,7 +44,7 @@ static i32 checkKeyName(HKEY key) {
   if (!key || !ntdll)
     return 0;
 
-  fn_NtQueryKey = (PFN_NtQueryKey)::GetProcAddress(ntdll, "NtQueryKey");
+  fn_NtQueryKey = (PFN_NtQueryKey)GetProcAddress(ntdll, "NtQueryKey");
   if (!fn_NtQueryKey)
     return 0;
 
@@ -81,8 +85,7 @@ static LONG WINAPI hook_RegEnumValueA(
   if (notSaved && !dwIndex) {
     // The handle isn't recorded and it's the first call on this key.
     if (checkKeyName(hKey)) {
-      // The layer loader is visiting the layer list.
-      // Set the key as Vulkan implicit layer.
+      // Set the current registry handle as access for Vulkan layer loader.
       gRegKeys[hKey] = 1;
 
       // Inject the layer.
@@ -99,9 +102,11 @@ static LONG WINAPI hook_RegEnumValueA(
 
       return ERROR_SUCCESS;
     } else
+      // Set the current registry handle as regular access.
       gRegKeys[hKey] = 2;
   }
 
+  // Return the enumerate result.
   result = fn_RegEnumValueA(
     hKey,
     (!notSaved && gRegKeys[hKey] == 1) ? dwIndex - 1 : dwIndex,
@@ -112,9 +117,59 @@ static LONG WINAPI hook_RegEnumValueA(
     lpData,
     lpcbData);
   if (result == ERROR_NO_MORE_ITEMS)
+    // Enumeration ended.
     gRegKeys.erase(hKey);
 
   return result;
+}
+
+/**
+ * Find the game window.
+ */
+static BOOL CALLBACK enumWndProc(HWND hWnd, LPARAM lParam) {
+  DWORD pid;
+  HTGameEdition edition = HT_EDITION_UNKNOWN;
+  wchar_t buffer[32];
+  HWND *result = (HWND *)lParam;
+
+  // Check the pid of the window.
+  GetWindowThreadProcessId(hWnd, &pid);
+  if (pid != gGameStatus.pid)
+    return 1;
+
+  // get the game edition from window name.
+  GetWindowTextW(hWnd, buffer, 32);
+  buffer[31] = 0;
+  if (!wcscmp(buffer, L"光·遇"))
+    edition = HT_EDITION_CHINESE;
+  else if (!wcscmp(buffer, L"Sky"))
+    edition = HT_EDITION_INTERNATIONAL;
+  else
+    return 1;
+
+  // Check the window's class name.
+  GetClassNameW(hWnd, buffer, 32);
+  buffer[31] = 0;
+  if (wcscmp(buffer, L"TgcMainWindow"))
+    return 1;
+  
+  *result = hWnd;
+  gGameStatus.edition = edition;
+  gGameStatus.window = hWnd;
+  return 0;
+}
+
+static DWORD WINAPI onAttach(LPVOID lpParam) {
+  HMODULE hModule = (HMODULE)lpParam;
+  HWND gameWnd = nullptr;
+
+  // Find the game window and game edition.
+  while (!gameWnd) {
+    Sleep(250);
+    EnumWindows(enumWndProc, (LPARAM)&gameWnd);
+  }
+
+  return 0;
 }
 
 BOOL APIENTRY DllMain(
@@ -123,8 +178,16 @@ BOOL APIENTRY DllMain(
   LPVOID lpReserved
 ) {
   if (dwReason == DLL_PROCESS_ATTACH) {
-    HMODULE hWinHttp = LoadLibraryA("C:\\Windows\\System32\\winhttp.dll");
+    // Build proxy dispatch table.
+    hWinHttp = LoadLibraryA("C:\\Windows\\System32\\winhttp.dll");
     proxy_importFunctions(hWinHttp);
+
+    gGameStatus.baseAddr = (void *)GetModuleHandleA("Sky.exe");
+    if (!gGameStatus.baseAddr)
+      // Not the correct game process, act as winhttp.dll.
+      return TRUE;
+    gGameStatus.pid = GetCurrentProcessId();
+
     initPaths(hModule);
 
     FreeConsole();
@@ -140,7 +203,13 @@ BOOL APIENTRY DllMain(
       (void **)&fn_RegEnumValueA
     );
     MH_EnableHook(MH_ALL_HOOKS);
+
+    CreateThread(
+      nullptr, 0, onAttach, (LPVOID)hModule, 0, nullptr);
   } else if (dwReason == DLL_PROCESS_DETACH) {
+    MH_DisableHook(MH_ALL_HOOKS);
+    MH_Uninitialize();
+    FreeLibrary(hWinHttp);
   }
 
   return TRUE;

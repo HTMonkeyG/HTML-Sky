@@ -5,4 +5,5 @@
 #include "MinHook.h"
 
 #include "aliases.h"
+#include "globals.h"
 #include "proxy/winhttp-proxy.h"

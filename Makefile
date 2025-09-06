@@ -35,7 +35,8 @@ CFLAGS += -I./libraries/vulkan/Include
 LFLAGS = -Wl,--gc-sections,-O3,--out-implib,$(DIST_DIR)/winhttp.lib,--export-all-symbols
 LFLAGS += -lgdi32 -ldwmapi -ld3dcompiler -lstdc++
 LFLAGS += -L./libraries/MinHook -lMinHook
-LFLAGS += -L./libraries/imgui-1.91.9b -limgui -limgui_impl_win32 -limgui_impl_vulkan
+LFLAGS += -L./libraries/vulkan/Lib -lvulkan-1
+LFLAGS += -L./libraries/imgui-1.91.9b -limgui -limgui_impl_win32 -limgui_impl_vulkan -limgui_demo
 
 vpath %.c $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
