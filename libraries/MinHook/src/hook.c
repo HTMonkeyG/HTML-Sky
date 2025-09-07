@@ -404,7 +404,8 @@ static MH_STATUS EnableHookLL(UINT pos, BOOL enable)
         patchSize    += sizeof(JMP_REL_SHORT);
     }
 
-    // NOTE: Bypasses the VMP Protect of Netease Sky: Cotl.
+    // NOTE: Bypasses the VMP Protect of Netease edition of Sky: Cotl.
+    // Modified by HTMonkeyG
     hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, GetCurrentProcessId());
 
     if (!VirtualProtectEx(hProcess, pPatchTarget, patchSize, PAGE_EXECUTE_READWRITE, &oldProtect))

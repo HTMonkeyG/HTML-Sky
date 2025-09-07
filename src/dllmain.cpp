@@ -137,7 +137,7 @@ static BOOL CALLBACK enumWndProc(HWND hWnd, LPARAM lParam) {
   if (pid != gGameStatus.pid)
     return 1;
 
-  // get the game edition from window name.
+  // Get the game edition from window name.
   GetWindowTextW(hWnd, buffer, 32);
   buffer[31] = 0;
   if (!wcscmp(buffer, L"光·遇"))
@@ -190,10 +190,12 @@ BOOL APIENTRY DllMain(
 
     initPaths(hModule);
 
-    FreeConsole();
-    AllocConsole();
-    freopen("CONOUT$", "w+t", stdout);
-    freopen("CONIN$", "r+t", stdin);
+    HTInitLogger(nullptr, 1);
+
+    LOGI("HTML attatched.\n");
+    LOGI("Game info: \n");
+    LOGI("  pid = 0x%lu\n", gGameStatus.pid);
+    LOGI("  baseAddr = 0x%p\n", gGameStatus.baseAddr);
 
     MH_Initialize();
     MH_CreateHookApi(

@@ -302,6 +302,9 @@ static void initVulkan() {
   }
 }
 
+/**
+ * Create Vulkan render target for ImGui.
+ */
 static void createRenderTargetVk(
   VkDevice device,
   VkSwapchainKHR swapchain
@@ -450,6 +453,9 @@ static void createRenderTargetVk(
   }
 }
 
+/**
+ * ImGui initialization and drawing.
+ */
 static VkResult renderGui(
   VkQueue queue,
   const VkPresentInfoKHR *pPresentInfo

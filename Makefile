@@ -45,12 +45,12 @@ vpath %.cpp $(SRC_DIRS)
 
 $(BIN_TARGET): $(C_OBJ) $(CPP_OBJ)
 	@echo Linking ...
-	@$(CXX) $(CFLAGS) $^ -shared -o $@ $(LFLAGS)
+	@$(CXX) --std=c++11 $(CFLAGS) $^ -shared -o $@ $(LFLAGS)
 	@echo Done.
 
 $(DIST_DIR)/%.o: %.c
 	@echo Compiling file "$<" ...
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) --std=c11 $(CFLAGS) -c $< -o $@
 
 $(DIST_DIR)/%.o: %.cpp
 	@echo Compiling file "$<" ...

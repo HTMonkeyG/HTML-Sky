@@ -6,4 +6,5 @@
 
 #include "aliases.h"
 #include "globals.h"
+#include "logger.h"
 #include "proxy/winhttp-proxy.h"
