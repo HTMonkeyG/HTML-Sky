@@ -4,8 +4,14 @@
 // https://www.github.com/HTMonkeyG/HTML-Sky
 // ----------------------------------------------------------------------------
 
+// #pragma once
 #ifndef __HTMODLOADER_H__
 #define __HTMODLOADER_H__
+
+// Throws an error when compiled on other architectures.
+#if !(defined(_M_X64) || defined(_WIN64) || defined(__x86_64__) || defined(__amd64__))
+#error HT's Mod Loader and it's related mods is only avaliable on x86-64!
+#endif
 
 // Mod loader version.
 // Version number is used for pre-processing statements handling version
@@ -183,6 +189,32 @@ HTMLAPI HTStatus HTDisableHookEx(
   HTHookFunction *func);
 typedef void (HTMLAPI *PFN_HTDisableHookEx)(
   HTHookFunction *func);
+
+// ----------------------------------------------------------------------------
+// [SECTION] HTML memory manager APIs.
+// ----------------------------------------------------------------------------
+
+/**
+ * Allocate a sized memory block.
+ */
+void *HTMemAlloc(
+  u64 size);
+
+/**
+ * Allocate space for an array of `count` objects, each of `size` bytes.
+ * Different from calloc(), HTMemNew won't initialize the memory block.
+ */
+void *HTMemNew(
+  u64 count, u64 size);
+
+/**
+ * Free a memory block allocated with HTMemAlloc() or HTMemNew(). Returns
+ * HT_FAIL when the pointer is invalid or is already freed.
+ * 
+ * Mod needs to reset pointer variables to prevent dangling pointers.
+ */
+HTStatus HTMemFree(
+  void *pointer);
 
 #ifdef __cplusplus
 }
