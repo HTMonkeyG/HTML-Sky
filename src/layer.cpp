@@ -25,6 +25,8 @@
 // [SECTION] Type declarations.
 // ----------------------------------------------------------------------------
 
+#define MAX_FRAME_BUFFER 8
+
 // Local structure, only used for traversing linked lists.
 struct VkLayerCreateInfo_ {
   VkStructureType sType;
@@ -78,8 +80,8 @@ struct GuiStatus {
   std::vector<VkQueueFamilyProperties> queueProperties;
   u32 queueFamily;
   u32 minImageCount;
-  ImGui_ImplVulkanH_Frame frames[8];
-  ImGui_ImplVulkanH_FrameSemaphores frameSemaphores[8];
+  ImGui_ImplVulkanH_Frame frames[MAX_FRAME_BUFFER];
+  ImGui_ImplVulkanH_FrameSemaphores frameSemaphores[MAX_FRAME_BUFFER];
 };
 
 // ----------------------------------------------------------------------------
@@ -248,61 +250,6 @@ u32 selectQueueFamilyIndex(VkPhysicalDevice physical_device) {
 }
 
 /**
- * Initialize Vulkan objects for ImGui.
- */
-static void initVulkan() {
-  ImVector<const char*> extensions;
-  GuiStatus *g = &gGuiStatus;
-
-  extensions.push_back("VK_KHR_surface");
-  extensions.push_back("VK_KHR_win32_surface");
-
-  {
-    // Create Vulkan Instance.
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.enabledExtensionCount = (u32)extensions.Size;
-    createInfo.ppEnabledExtensionNames = extensions.Data;
-    vkCreateInstance(&createInfo, g->allocator, &g->instance);
-  }
-
-  // Select Physical Device (GPU).
-  g->physicalDevice = ImGui_ImplVulkanH_SelectPhysicalDevice(g->instance);
-  //IM_ASSERT(gGuiStatus.physicalDevice != VK_NULL_HANDLE);
-
-  // Select graphics queue family.
-  g->queueFamily = selectQueueFamilyIndex(g->physicalDevice);
-  //IM_ASSERT(gGuiStatus.queueFamily != (u32)-1);
-
-  // Create Logical Device (with 1 queue)
-  {
-    ImVector<const char*> deviceExtensions;
-    deviceExtensions.push_back("VK_KHR_swapchain");
-
-    // Enumerate physical device extension.
-    u32 propertiesCount;
-    ImVector<VkExtensionProperties> properties;
-    vkEnumerateDeviceExtensionProperties(g->physicalDevice, nullptr, &propertiesCount, nullptr);
-    properties.resize(propertiesCount);
-    vkEnumerateDeviceExtensionProperties(g->physicalDevice, nullptr, &propertiesCount, properties.Data);
-
-    const float queuePriority[] = { 1.0f };
-    VkDeviceQueueCreateInfo queueInfo[1] = {};
-    queueInfo[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueInfo[0].queueFamilyIndex = gGuiStatus.queueFamily;
-    queueInfo[0].queueCount = 1;
-    queueInfo[0].pQueuePriorities = queuePriority;
-    VkDeviceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
-    createInfo.pQueueCreateInfos = queueInfo;
-    createInfo.enabledExtensionCount = (uint32_t)deviceExtensions.Size;
-    createInfo.ppEnabledExtensionNames = deviceExtensions.Data;
-    vkCreateDevice(g->physicalDevice, &createInfo, g->allocator, &g->fakeDevice);
-  }
-}
-
-/**
  * Create Vulkan render target for ImGui.
  */
 static void createRenderTargetVk(
@@ -310,7 +257,7 @@ static void createRenderTargetVk(
   VkSwapchainKHR swapchain
 ) {
   u32 imageCount;
-  VkImage images[8] = {0};
+  VkImage images[MAX_FRAME_BUFFER] = {0};
   GuiStatus *g = &gGuiStatus;
 
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
@@ -450,6 +397,124 @@ static void createRenderTargetVk(
     pool_info.pPoolSizes = poolSizes;
 
     vkCreateDescriptorPool(device, &pool_info, g->allocator, &g->descriptorPool);
+  }
+}
+
+/**
+ * Clean up render targets.
+ */
+static void destroyRenderTargetVk() {
+  GuiStatus *g = &gGuiStatus;
+
+  for (u32 i = 0; i < MAX_FRAME_BUFFER; i++) {
+    if (g->frames[i].Fence) {
+      vkDestroyFence(
+        g->device,
+        g->frames[i].Fence,
+        g->allocator);
+      g->frames[i].Fence = VK_NULL_HANDLE;
+    }
+    if (g->frames[i].CommandBuffer) {
+      vkFreeCommandBuffers(
+        g->device,
+        g->frames[i].CommandPool,
+        1,
+        &g->frames[i].CommandBuffer);
+      g->frames[i].CommandBuffer = VK_NULL_HANDLE;
+    }
+    if (g->frames[i].CommandPool) {
+      vkDestroyCommandPool(
+        g->device,
+        g->frames[i].CommandPool,
+        g->allocator);
+      g->frames[i].CommandPool = VK_NULL_HANDLE;
+    }
+    if (g->frames[i].BackbufferView) {
+      vkDestroyImageView(
+        g->device,
+        g->frames[i].BackbufferView,
+        g->allocator);
+      g->frames[i].BackbufferView = VK_NULL_HANDLE;
+    }
+    if (g->frames[i].Framebuffer) {
+      vkDestroyFramebuffer(
+        g->device,
+        g->frames[i].Framebuffer,
+        g->allocator);
+      g->frames[i].Framebuffer = VK_NULL_HANDLE;
+    }
+  }
+
+  for (uint32_t i = 0; i < 8; i++) {
+    if (g->frameSemaphores[i].ImageAcquiredSemaphore) {
+      vkDestroySemaphore(
+        g->device,
+        g->frameSemaphores[i].ImageAcquiredSemaphore,
+        g->allocator);
+      g->frameSemaphores[i].ImageAcquiredSemaphore = VK_NULL_HANDLE;
+    }
+    if (g->frameSemaphores[i].RenderCompleteSemaphore) {
+      vkDestroySemaphore(
+        g->device,
+        g->frameSemaphores[i].RenderCompleteSemaphore,
+        g->allocator);
+      g->frameSemaphores[i].RenderCompleteSemaphore = VK_NULL_HANDLE;
+    }
+  }
+}
+
+/**
+ * Initialize Vulkan objects for ImGui.
+ */
+static void initVulkan() {
+  ImVector<const char*> extensions;
+  GuiStatus *g = &gGuiStatus;
+
+  extensions.push_back("VK_KHR_surface");
+  extensions.push_back("VK_KHR_win32_surface");
+
+  {
+    // Create Vulkan Instance.
+    VkInstanceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.enabledExtensionCount = (u32)extensions.Size;
+    createInfo.ppEnabledExtensionNames = extensions.Data;
+    vkCreateInstance(&createInfo, g->allocator, &g->instance);
+  }
+
+  // Select Physical Device (GPU).
+  g->physicalDevice = ImGui_ImplVulkanH_SelectPhysicalDevice(g->instance);
+  //IM_ASSERT(gGuiStatus.physicalDevice != VK_NULL_HANDLE);
+
+  // Select graphics queue family.
+  g->queueFamily = selectQueueFamilyIndex(g->physicalDevice);
+  //IM_ASSERT(gGuiStatus.queueFamily != (u32)-1);
+
+  // Create Logical Device (with 1 queue)
+  {
+    ImVector<const char*> deviceExtensions;
+    deviceExtensions.push_back("VK_KHR_swapchain");
+
+    // Enumerate physical device extension.
+    u32 propertiesCount;
+    ImVector<VkExtensionProperties> properties;
+    vkEnumerateDeviceExtensionProperties(g->physicalDevice, nullptr, &propertiesCount, nullptr);
+    properties.resize(propertiesCount);
+    vkEnumerateDeviceExtensionProperties(g->physicalDevice, nullptr, &propertiesCount, properties.Data);
+
+    const float queuePriority[] = { 1.0f };
+    VkDeviceQueueCreateInfo queueInfo[1] = {};
+    queueInfo[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueInfo[0].queueFamilyIndex = gGuiStatus.queueFamily;
+    queueInfo[0].queueCount = 1;
+    queueInfo[0].pQueuePriorities = queuePriority;
+    VkDeviceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
+    createInfo.pQueueCreateInfos = queueInfo;
+    createInfo.enabledExtensionCount = (uint32_t)deviceExtensions.Size;
+    createInfo.ppEnabledExtensionNames = deviceExtensions.Data;
+    vkCreateDevice(g->physicalDevice, &createInfo, g->allocator, &g->fakeDevice);
   }
 }
 
@@ -762,6 +827,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkCreateSwapchainKHR(
   const VkAllocationCallbacks *pAllocator,
   VkSwapchainKHR *pSwapchain
 ) {
+  destroyRenderTargetVk();
   gGuiStatus.imageExtent = pCreateInfo->imageExtent;
   return getDeviceDispatchTable(device)->CreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
 }
