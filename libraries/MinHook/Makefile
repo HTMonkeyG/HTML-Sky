@@ -16,10 +16,6 @@ all: MinHook.dll libMinHook.dll.a libMinHook.a
 
 libMinHook.a: $(OBJS)
 	@$(AR) rcs $@ $^
-libMinHook.dll.a: MinHook.dll dll_resources/MinHook.def
-	@$(DLLTOOL) --dllname MinHook.dll --input-def dll_resources/MinHook.def --output-lib $@
-MinHook.dll: $(OBJS) dll_resources/MinHook.res dll_resources/MinHook.def
-	@$(CCLD) -o $@ -shared $(LDFLAGS) $^
 
 .rc.res:
 	@$(WINDRES) -o $@ --input-format=rc --output-format=coff $<
@@ -28,10 +24,7 @@ MinHook.dll: $(OBJS) dll_resources/MinHook.res dll_resources/MinHook.def
 
 clean:
 	-@del src\*.o
-	-@del MinHook.dll
-	-@del libMinHook.dll.a
 	-@del libMinHook.a
-	-@del dll_resources\MinHook.res
 
 .PHONY: clean
 .SUFFIXES: .rc .res

@@ -23,20 +23,22 @@ CXX = g++
 # Params.
 CFLAGS = -Wall -Wformat -O3 -ffunction-sections -fdata-sections -static -flto -s
 CFLAGS += -I./src
-# Include ImGui.
-CFLAGS += -I./libraries/imgui-1.91.9b -I./libraries/imgui-1.91.9b/backends
-# Include MinHook.
-CFLAGS += -I./libraries/MinHook/include
-# Include Vulkan.
-CFLAGS += -I./libraries/vulkan/Include
-# Macros.
-#CFLAGS += -DNDEBUG
-
 LFLAGS = -Wl,--gc-sections,-O3,--out-implib,$(DIST_DIR)/winhttp.lib,--export-all-symbols
 LFLAGS += -lgdi32 -ldwmapi -ld3dcompiler -lstdc++
+# Include ImGui.
+CFLAGS += -I./libraries/imgui-1.91.9b -I./libraries/imgui-1.91.9b/backends
+LFLAGS += -L./libraries/imgui-1.91.9b -limgui -limgui_impl_win32 -limgui_impl_vulkan
+# Include MinHook.
+CFLAGS += -I./libraries/MinHook/include
 LFLAGS += -L./libraries/MinHook -lMinHook
+# Include Vulkan.
+CFLAGS += -I./libraries/vulkan/Include
 LFLAGS += -L./libraries/vulkan/Lib -lvulkan-1
-LFLAGS += -L./libraries/imgui-1.91.9b -limgui -limgui_impl_win32 -limgui_impl_vulkan -limgui_demo
+# Include cJSON.
+CFLAGS += -I./libraries/cJSON
+LFLAGS += -L./libraries/cJSON -lcjson
+# Macros.
+#CFLAGS += -DNDEBUG
 
 vpath %.c $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
@@ -70,7 +72,9 @@ libs:
 	@echo Compiling libraries ...
 	-@$(MAKE) -s -C ./libraries/imgui-1.91.9b all
 	-@$(MAKE) -s -C ./libraries/MinHook libMinHook.a
+	-@$(MAKE) -s -C ./libraries/cJSON libcjson.a
 
 clean_libs:
 	-@$(MAKE) -s -C ./libraries/imgui-1.91.9b clean
 	-@$(MAKE) -s -C ./libraries/MinHook clean
+	-@$(MAKE) -s -C ./libraries/cJSON clean
