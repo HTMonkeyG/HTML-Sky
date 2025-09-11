@@ -10,8 +10,6 @@ typedef NTSTATUS (WINAPI *PFN_NtQueryKey)(
 
 static PFN_RegEnumValueA fn_RegEnumValueA;
 static std::unordered_map<HKEY, DWORD> gRegKeys;
-static char gDllPath[MAX_PATH]
-  , gLayerConfigPath[MAX_PATH];
 static HMODULE hWinHttp;
 
 /**
@@ -19,14 +17,33 @@ static HMODULE hWinHttp;
  */
 static i32 initPaths(HMODULE hModule) {
   char *p;
-  if (!GetModuleFileNameA(hModule, gDllPath, MAX_PATH))
-    return 0;
-  p = strrchr(gDllPath, '\\');
+
+  GetModuleFileNameA(hModule, gPathDll, MAX_PATH);
+  GetModuleFileNameA(nullptr, gPathGameExe, MAX_PATH);
+
+  p = strrchr(gPathDll, '\\');
   if (!p)
     return 0;
   *p = 0;
-  strcpy(gLayerConfigPath, gDllPath);
-  strcat(gLayerConfigPath, "\\html-config.json");
+  strcpy(gPathLayerConfig, gPathDll);
+  strcat(gPathLayerConfig, "\\html-config.json");
+
+  p = strrchr(gPathGameExe, '\\');
+  if (!p)
+    return 0;
+  *p = 0;
+  strcpy(gPathMods, gPathGameExe);
+  strcat(gPathMods, "\\htmods");
+
+  // We assume that the path is shorter than MAX_PATH.
+  MultiByteToWideChar(
+    CP_ACP,
+    MB_PRECOMPOSED,
+    gPathMods,
+    strlen(gPathMods),
+    gPathModsWide,
+    MAX_PATH);
+
   return 1;
 }
 
@@ -90,9 +107,9 @@ static LONG WINAPI hook_RegEnumValueA(
 
       // Inject the layer.
       if (lpValueName)
-        strcpy(lpValueName, gLayerConfigPath);
+        strcpy(lpValueName, gPathLayerConfig);
       if (lpcchValueName)
-        *lpcchValueName = strlen(gLayerConfigPath) + 1;
+        *lpcchValueName = strlen(gPathLayerConfig) + 1;
       if (lpType)
         *lpType = REG_DWORD;
       if (lpData)
@@ -163,11 +180,21 @@ static DWORD WINAPI onAttach(LPVOID lpParam) {
   HMODULE hModule = (HMODULE)lpParam;
   HWND gameWnd = nullptr;
 
+  (void)hModule;
+
+  // Create an independent heap.
+  gHeap = HeapCreate(0, 0, 0);
+  gEventGuiInit = CreateEventA(nullptr, 0, 0, nullptr);
+
   // Find the game window and game edition.
   while (!gameWnd) {
     Sleep(250);
     EnumWindows(enumWndProc, (LPARAM)&gameWnd);
   }
+
+  // Load mods after the menu is created.
+  WaitForSingleObject(gEventGuiInit, 30000);
+  HTLoadMods();
 
   return 0;
 }
@@ -188,9 +215,8 @@ BOOL APIENTRY DllMain(
       return TRUE;
     gGameStatus.pid = GetCurrentProcessId();
 
-    initPaths(hModule);
-
     HTInitLogger(nullptr, 1);
+    initPaths(hModule);
 
     LOGI("HTML attatched.\n");
     LOGI("Game info: \n");

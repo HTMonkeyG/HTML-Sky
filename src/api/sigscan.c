@@ -208,17 +208,17 @@ HTMLAPI void *HTSigScanFunc(
   return func->fn;
 }
 
-HTMLAPI i32 HTSigScanFuncEx(
+HTMLAPI HTStatus HTSigScanFuncEx(
   const HTSignature **signature,
   HTHookFunction **func,
   u32 size
 ) {
-  i32 result = 1;
+  HTStatus result = HT_SUCCESS;
   const HTSignature *sig;
   HTHookFunction *f;
 
   if (!signature || !func || !size)
-    return 0;
+    return HT_FAIL;
 
   for (u32 i = 0; i < size; i++) {
     sig = signature[i];
@@ -226,7 +226,8 @@ HTMLAPI i32 HTSigScanFuncEx(
     if (!sig || !f)
       continue;
     if (!HTSigScanFunc(sig, f))
-      result = 0;
+      // Marked as failed if failed to scan any of the signature codes.
+      result = HT_FAIL;
   }
 
   return result;

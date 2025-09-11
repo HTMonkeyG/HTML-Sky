@@ -467,7 +467,7 @@ static void destroyRenderTargetVk() {
  * Initialize Vulkan objects for ImGui.
  */
 static void initVulkan() {
-  ImVector<const char*> extensions;
+  ImVector<const char *> extensions;
   GuiStatus *g = &gGuiStatus;
 
   extensions.push_back("VK_KHR_surface");
@@ -492,7 +492,7 @@ static void initVulkan() {
 
   // Create Logical Device (with 1 queue)
   {
-    ImVector<const char*> deviceExtensions;
+    ImVector<const char *> deviceExtensions;
     deviceExtensions.push_back("VK_KHR_swapchain");
 
     // Enumerate physical device extension.
@@ -538,7 +538,7 @@ static VkResult renderGui(
     VkSwapchainKHR swapchain = pPresentInfo->pSwapchains[i];
     u32 imageIndex = pPresentInfo->pImageIndices[i];
     ImGui_ImplVulkanH_Frame *f = (ImGui_ImplVulkanH_Frame *)&g->frames[imageIndex];
-    ImGui_ImplVulkanH_FrameSemaphores* fs = &g->frameSemaphores[imageIndex];
+    ImGui_ImplVulkanH_FrameSemaphores *fs = &g->frameSemaphores[imageIndex];
 
     if (g->frames[0].Framebuffer == VK_NULL_HANDLE)
       createRenderTargetVk(g->device, swapchain);
@@ -586,6 +586,9 @@ static VkResult renderGui(
       initInfo.Subpass = 0;
       ImGui_ImplVulkan_Init(&initInfo);
       ImGui_ImplVulkan_CreateFontsTexture();
+
+      // Set the gui inited event.
+      SetEvent(gEventGuiInit);
     }
 
     // Create new frame.

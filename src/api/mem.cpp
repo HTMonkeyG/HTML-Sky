@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <mutex>
 #include "aliases.h"
+#include "globals.h"
 #include "htmodloader.h"
 
 static std::mutex gMutex;
@@ -13,7 +14,7 @@ static std::unordered_set<void *> gAllocated;
 
 void *HTMemAlloc(u64 size) {
   std::lock_guard<std::mutex> lock(gMutex);
-  void *result = malloc(size);
+  void *result = HeapAlloc(gHeap, 0, size);
   if (result)
     gAllocated.insert(result);
   return result;
@@ -21,7 +22,7 @@ void *HTMemAlloc(u64 size) {
 
 void *HTMemNew(u64 count, u64 size) {
   std::lock_guard<std::mutex> lock(gMutex);
-  void *result = malloc(count * size);
+  void *result = HeapAlloc(gHeap, 0, count * size);
   if (result)
     gAllocated.insert(result);
   return result;
@@ -35,7 +36,7 @@ HTStatus HTMemFree(void *pointer) {
     return HT_FAIL;
 
   gAllocated.erase(pointer);
-  free(pointer);
+  HeapFree(gHeap, 0, pointer);
 
   return HT_SUCCESS;
 }

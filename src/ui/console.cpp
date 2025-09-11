@@ -62,6 +62,7 @@ void HTMenuConsole() {
   ImGui::EndChild();
   ImGui::Separator();
 
+  ImGui::SetNextItemWidth(-FLT_MIN);
   if (ImGui::InputText(
     "##ConsoleInput",
     gInputBuffer,

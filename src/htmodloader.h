@@ -61,21 +61,28 @@ typedef struct {
   DWORD pid;
 } HTGameStatus;
 
+// Function prototype.
+typedef void *(HTMLAPI *PFN_HTVoidFunction)(
+  void);
+
 /**
  * Get game status object.
  */
 void HTGetGameStatus(
   HTGameStatus *status);
 
-// Function prototype.
-typedef void *(HTMLAPI *PFN_HTVoidFunction)(
-  void);
+/**
+ * Get the folder where the game executable file is located.
+ */
+void HTGetGameExeFolder(
+  char *result, u64 maxLen);
 
 /**
- * Get the address of a function with name.
+ * Get the folder where the mod loader dll is located. In most cases, the same
+ * as HTGetGameExeFolder()'s result.
  */
-PFN_HTVoidFunction HTML_GetProcAddr(
-  const char *name);
+void HTGetGameExeFolder(
+  char *result, u64 maxLen);
 
 // ----------------------------------------------------------------------------
 // [SECTION] HTML signature scan APIs.
@@ -133,9 +140,9 @@ typedef void *(HTMLAPI *PFN_HTSigScanFunc)(
 /**
  * Scan an array of functions.
  */
-HTMLAPI i32 HTSigScanFuncEx(
+HTMLAPI HTStatus HTSigScanFuncEx(
   const HTSignature **signature, HTHookFunction **func, u32 size);
-typedef i32 (HTMLAPI *PFN_HTSigScanFuncEx)(
+typedef HTStatus (HTMLAPI *PFN_HTSigScanFuncEx)(
   const HTSignature **signature, HTHookFunction **func, u32 size);
 
 // ----------------------------------------------------------------------------
@@ -215,6 +222,26 @@ void *HTMemNew(
  */
 HTStatus HTMemFree(
   void *pointer);
+
+// ----------------------------------------------------------------------------
+// [SECTION] HTML mod communication APIs.
+// ----------------------------------------------------------------------------
+
+/**
+ * Get the address of a registered function.
+ */
+PFN_HTVoidFunction HTGetProcAddr(
+  HMODULE hModule, const char *name);
+
+/**
+ * Register a function with name. Registered function can be called by other
+ * mods with HTGetProcAddr().
+ * 
+ * It is recommended to use namespace strings like `namespace:foobar` when
+ * registering functions.
+ */
+HTStatus HTCommRegFunction(
+  HMODULE hModule, const char *name, PFN_HTVoidFunction func);
 
 #ifdef __cplusplus
 }
