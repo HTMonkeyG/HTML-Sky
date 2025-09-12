@@ -1,6 +1,3 @@
-#include <string>
-#include <unordered_map>
-#include <vector>
 #include <cmath>
 #include "cJSON.h"
 #include "logger.h"
@@ -9,41 +6,7 @@
 #include "aliases.h"
 #include "htmodloader.h"
 
-struct ModPaths {
-  // The folder contains manifest.json.
-  std::wstring folder;
-  // "main" in manifest.json. The name of the main executable file of the mod.
-  std::wstring dll;
-  // The path to manifest.json.
-  std::wstring json;
-};
-
-struct ModMeta {
-  // This name is used to identify mods and add dependencies, and must be
-  // unique for every mod.
-  std::string packageName;
-  // The version number of the mod.
-  u32 version[3];
-};
-
-struct ModManifest {
-  // Mod identification data.
-  ModMeta meta;
-  // Paths to the related files of the mod.
-  ModPaths paths;
-  // This name is used to display mod basic information.
-  std::string modName;
-  // The description of the mod.
-  std::string description;
-  // The author of the mod.
-  std::string author;
-  // Game edition the mod supports.
-  u08 gameEditionFlags;
-  // Dependencies of the mod.
-  std::vector<ModMeta> dependencies;
-};
-
-std::unordered_map<std::string, ModManifest> gModDataInitial;
+std::unordered_map<std::string, ModManifest> gModDataLoader;
 
 static inline i32 fileExists(const wchar_t *path) {
   DWORD attr = GetFileAttributesW(path);
@@ -145,7 +108,7 @@ static i32 deserializeManifestJson(
   
   // Get compatible game edition of the mod.
   editionFlag = cJSON_GetNumberValue(cJSON_GetObjectItemCaseSensitive(json, "game_edition"));
-  if (std::isnan(editionFlag) || ((u08)editionFlag & 0x03 == 0))
+  if (std::isnan(editionFlag) || ((u08)editionFlag & 0x03) == 0)
     goto RET;
   manifest->gameEditionFlags = (u08)editionFlag & 0x03;
 
@@ -240,17 +203,25 @@ static void scanMods() {
     if (!fileExists(manifest.paths.dll.data()))
       continue;
     
-    gModDataInitial[manifest.meta.packageName] = manifest;
+    gModDataLoader[manifest.meta.packageName] = manifest;
 
     LOGI("Scanned mod %s.\n", manifest.modName.data());
   } while (FindNextFileW(hFindFile, &findData));
 }
 
 static void loadMods() {
-
+  ModRuntime runtime;
+  for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); ++it) {
+    runtime.handle = LoadLibraryW(it->second.paths.dll.data());
+    if (runtime.handle)
+      LOGI("Loaded mod %s.\n", it->second.modName.data());
+    else
+      LOGI("Load mod %s failed.\n", it->second.modName.data());
+    gModDataLoader[it->first].runtime = runtime;
+  }
 }
 
-void HTLoadMods() {
+HTStatus HTLoadMods() {
   // Create the mods folder if not exist.
   DWORD attr = GetFileAttributesW(gPathModsWide);
 
@@ -259,9 +230,17 @@ void HTLoadMods() {
     || !(attr & FILE_ATTRIBUTE_DIRECTORY)
   ) {
     CreateDirectoryW(gPathModsWide, nullptr);
-    return;
+    return HT_FAIL;
   }
 
   scanMods();
   loadMods();
+
+  return HT_SUCCESS;
+}
+
+HTStatus HTInjectDll(
+  const wchar_t *path
+) {
+  return HT_SUCCESS;
 }

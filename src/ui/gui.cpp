@@ -3,13 +3,65 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_vulkan.h"
 #include "vulkan/vulkan.h"
+
 #include "ui/input.h"
 #include "ui/gui.h"
 #include "ui/console.h"
+
 #include "globals.h"
+#include "loader.h"
 
 static bool gShowMainMenu = true
   , gFirstFrame = true;
+static const ImVec4 modNameColor(1, 1, 1, 1)
+  , modDescColor(0.75, 0.75, 0.75, 1);
+
+/**
+ * Render mod list tab item.
+ */
+static void HTMenuAbouts() {
+  ImGui::Text("HT's Mod Loader v" HTML_VERSION_NAME " by HTMonkeyG");
+  ImGui::Text("A mod loader developed for Sky:CotL.");
+  ImGui::Text("<https://www.github.com/HTMonkeyG/HTML-Sky>");
+}
+
+/**
+ * Render mod list tab item.
+ */
+static void HTMenuModList() {
+  i32 i = 0;
+
+  if (!ImGui::BeginChild("##HTModList"))
+    return (void)ImGui::EndChild();
+  
+  ImGui::PushID("##HTModListItems");
+  ImVec2 size(0, ImGui::GetTextLineHeight() * 4);
+  ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
+  spacing.y = 1;
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, spacing);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(3, 3));
+  for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); ++it, i++) {
+    ModManifest &manifest = it->second;
+
+    // Show mod info.
+    ImGuiID childId = ImGui::GetID((void *)(u64)i);
+    ImGui::BeginChild(childId, size, ImGuiChildFlags_Borders);
+
+    // Show mod name.
+    ImGui::TextColored(modNameColor, "%s", manifest.modName.data());
+
+    // Show mod description.
+    ImGui::PushStyleColor(ImGuiCol_Text, modDescColor);
+    ImGui::TextWrapped("%s", manifest.description.data());
+    ImGui::PopStyleColor();
+
+    ImGui::EndChild();
+  }
+  ImGui::PopStyleVar(2);
+  ImGui::PopID();
+  
+  ImGui::EndChild();
+}
 
 /**
  * Initialize ImGui context and window message hook.
@@ -58,28 +110,27 @@ void HTUpdateGUI() {
   ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
   if (gFirstFrame) {
     // Resize window on the first frame.
-    windowFlags = ImGuiWindowFlags_AlwaysAutoResize;
+    ImGui::SetNextWindowSize(ImVec2(480, 320));
     gFirstFrame = false;
   }
 
   if (!ImGui::Begin("HTML Main Menu", &gShowMainMenu, windowFlags))
     return (void)ImGui::End();
   
-  if (ImGui::BeginTabBar("Nav Main")) {
+  if (ImGui::BeginTabBar("HTNavMain")) {
+    if (ImGui::BeginTabItem("Abouts")) {
+      HTMenuAbouts();
+      ImGui::EndTabItem();
+    }
     if (ImGui::BeginTabItem("Console")) {
       HTMenuConsole();
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Mods")) {
+      HTMenuModList();
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Settings")) {
-      ImGui::EndTabItem();
-    }
-    if (ImGui::BeginTabItem("Abouts")) {
-      ImGui::Text("HT's Mod Loader v" HTML_VERSION_NAME " by HTMonkeyG");
-      ImGui::Text("A mod loader developed for Sky:CotL.");
-      ImGui::Text("<https://www.github.com/HTMonkeyG/HTML-Sky>");
       ImGui::EndTabItem();
     }
     ImGui::EndTabBar();

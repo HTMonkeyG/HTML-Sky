@@ -215,7 +215,7 @@ BOOL APIENTRY DllMain(
       return TRUE;
     gGameStatus.pid = GetCurrentProcessId();
 
-    HTInitLogger(nullptr, 1);
+    HTInitLogger(nullptr, 0);
     initPaths(hModule);
 
     LOGI("HTML attatched.\n");
