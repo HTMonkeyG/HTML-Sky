@@ -12,10 +12,10 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_vulkan.h"
 
-#include <unordered_map>
 #include <unordered_set>
 #include <mutex>
 #include <vector>
+#include <map>
 
 #include "aliases.h"
 #include "globals.h"
@@ -89,11 +89,11 @@ struct GuiStatus {
 // ----------------------------------------------------------------------------
 
 // Saved instance dispatch tables.
-static std::unordered_map<VkInstance, InstanceDispatchTable> gInstanceTables;
+static std::map<VkInstance, InstanceDispatchTable> gInstanceTables;
 // Saved device data objects.
-static std::unordered_map<VkDevice, DeviceData> gDeviceData;
+static std::map<VkDevice, DeviceData> gDeviceData;
 // Saved queue data objects.
-static std::unordered_map<VkQueue, QueueData> gQueueData;
+static std::map<VkQueue, QueueData> gQueueData;
 // Mutex.
 static std::mutex gMutex;
 // ImGui related data.
