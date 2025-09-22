@@ -504,7 +504,7 @@ typedef struct {
 
 // Hotkey callback.
 typedef void (HTMLAPI *PFN_HTHotkeyCallback)(
-  const HTKeyEvent *event);
+  HTKeyEvent *event);
 
 /**
  * Shortcut for passing HTHotkeyFlags_None to HTHotkeyRegisterEx()

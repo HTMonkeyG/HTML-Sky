@@ -225,7 +225,7 @@ void HTMainMenu(
  * of hKeyMenuToggle.
  */
 void HTToggleMenuState(
-  const HTKeyEvent *);
+  HTKeyEvent *);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Input related functions.

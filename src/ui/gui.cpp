@@ -333,7 +333,7 @@ void HTMainMenu(f32, void *) {
   ImGui::End();
 }
 
-void HTToggleMenuState(const HTKeyEvent *event) {
+void HTToggleMenuState(HTKeyEvent *event) {
   if ((event->flags & HTKeyEventFlags_Mask) == HTKeyEventFlags_Down)
     gShowMainMenu = !gShowMainMenu;
 }
