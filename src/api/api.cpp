@@ -58,3 +58,62 @@ HTMLAPIATTR HMODULE HTMLAPI HTGetModuleHandle(
 
   return it->second.runtime->handle;
 }
+
+HTMLAPIATTR HTHandle HTMLAPI HTGetModManifest(
+  HMODULE hModule
+) {
+  std::lock_guard<std::mutex> lock(gModDataLock);
+
+  if (!hModule)
+    return HT_INVALID_HANDLE;
+
+  ModRuntime *rt = getModRuntime(hModule);
+  if (!rt)
+    return HT_INVALID_HANDLE;
+  
+  registerHandle((HTHandle)rt->manifest, HTHandleType_Manifest);
+
+  return (HTHandle)rt->manifest;
+}
+
+HTMLAPIATTR u32 HTMLAPI HTGetModInfoFrom(
+  HTHandle hManifest,
+  HTModInfoFields info,
+  void *out,
+  u32 maxLen
+) {
+  if (!checkHandleType(hManifest, HTHandleType_Manifest))
+    return 0;
+  ModManifest *manifest = (ModManifest *)hManifest;
+  u64 size;
+
+  if (maxLen && !out)
+    return 0;
+
+  switch (info) {
+    case HTModInfoFields_ModName:
+      size = manifest->modName.length();
+      if (!maxLen)
+        return size;
+      if (size > maxLen)
+        return 0;
+      strcpy_s((char *)out, maxLen, manifest->modName.c_str());
+      return size;
+    case HTModInfoFields_PackageName:
+      size = manifest->meta.packageName.length();
+      if (!maxLen)
+        return size;
+      if (size > maxLen)
+        return 0;
+      strcpy_s((char *)out, maxLen, manifest->meta.packageName.c_str());
+      return size;
+    case HTModInfoFields_Folder:
+      size = manifest->paths.folder.length() * sizeof(wchar_t);
+      if (!maxLen)
+        return size;
+      if (size + 2 > maxLen)
+        return 0;
+      memcpy_s(out, maxLen, manifest->meta.packageName.c_str(), size);
+      return size;
+  }
+}

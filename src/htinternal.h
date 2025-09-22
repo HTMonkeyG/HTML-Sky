@@ -24,6 +24,20 @@ extern "C" {
 // [SECTION] Mod loader functions.
 // ----------------------------------------------------------------------------
 
+static inline i32 fileExists(const wchar_t *path) {
+  DWORD attr = GetFileAttributesW(path);
+  if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY))
+    return 0;
+  return 1;
+}
+
+static inline i32 folderExists(const wchar_t *path) {
+  DWORD attr = GetFileAttributesW(path);
+  if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY))
+    return 0;
+  return 1;
+}
+
 HTStatus HTLoadMods();
 void HTLoadSingleMod();
 void HTUnloadSingleMod();
@@ -37,6 +51,7 @@ HTStatus HTRejectDll();
 
 typedef enum {
   HTHandleType_Invalid = 0,
+  HTHandleType_Manifest,
   HTHandleType_Mod,
   HTHandleType_Hotkey,
   HTHandleType_Command

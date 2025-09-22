@@ -43,10 +43,20 @@ static i32 initPaths(HMODULE hModule) {
   if (!p)
     return 0;
   *p = 0;
-  strcpy(gPathMods, gPathGameExe);
-  strcat(gPathMods, "\\htmods");
+  strcpy(gPathData, gPathGameExe);
+  strcat(gPathData, "\\htmodloader");
+
+  strcpy(gPathMods, gPathData);
+  strcat(gPathMods, "\\mods");
 
   // We assume that the path is shorter than MAX_PATH.
+  MultiByteToWideChar(
+    CP_ACP,
+    MB_PRECOMPOSED,
+    gPathData,
+    strlen(gPathData),
+    gPathDataWide,
+    MAX_PATH);
   MultiByteToWideChar(
     CP_ACP,
     MB_PRECOMPOSED,
@@ -54,6 +64,11 @@ static i32 initPaths(HMODULE hModule) {
     strlen(gPathMods),
     gPathModsWide,
     MAX_PATH);
+
+  if (!folderExists(gPathDataWide))
+    CreateDirectoryW(gPathDataWide, nullptr);
+  if (!folderExists(gPathModsWide))
+    CreateDirectoryW(gPathModsWide, nullptr);
 
   return 1;
 }

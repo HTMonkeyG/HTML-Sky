@@ -11,13 +11,6 @@
 #include "utils/texts.h"
 #include "htinternal.h"
 
-static inline i32 fileExists(const wchar_t *path) {
-  DWORD attr = GetFileAttributesW(path);
-  if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY))
-    return 0;
-  return 1;
-}
-
 static std::wstring utf8ToWchar(const char *input) {
   if (!input)
     return std::wstring();
@@ -286,17 +279,6 @@ void initMods() {
 }
 
 HTStatus HTLoadMods() {
-  // Create the mods folder if not exist.
-  DWORD attr = GetFileAttributesW(gPathModsWide);
-
-  if (
-    attr == INVALID_FILE_ATTRIBUTES
-    || !(attr & FILE_ATTRIBUTE_DIRECTORY)
-  ) {
-    CreateDirectoryW(gPathModsWide, nullptr);
-    return HT_FAIL;
-  }
-
   HTBootstrap();
   scanMods();
   expandMods();

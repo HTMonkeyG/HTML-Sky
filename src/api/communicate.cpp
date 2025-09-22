@@ -32,21 +32,6 @@ HTMLAPIATTR PFN_HTVoidFunction HTMLAPI HTGetProcAddr(
   return it->second;
 }
 
-HTMLAPIATTR HTHandle HTMLAPI HTGetModManifest(
-  HMODULE hModule
-) {
-  std::lock_guard<std::mutex> lock(gModDataLock);
-
-  if (!hModule)
-    return HT_INVALID_HANDLE;
-
-  ModRuntime *rt = getModRuntime(hModule);
-  if (!rt)
-    return HT_INVALID_HANDLE;
-
-  return (HTHandle)rt->manifest;
-}
-
 HTMLAPIATTR HTStatus HTMLAPI HTCommRegFunction(
   HMODULE hModule,
   const char *name,
