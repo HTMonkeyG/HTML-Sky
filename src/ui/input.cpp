@@ -159,7 +159,7 @@ static HTKeyCode vkToInternalKey(
 }
 
 #define HTHotkeyCheck(a, b) \
-  ((void)((isVkDown(a) == isKeyDown) && (HTHotkeyDispatch(b, down | repeat | blockedKey), 1)))
+  ((void)((isVkDown(a) == isKeyDown) && (HTHotkeyDispatch(b, down | repeat | blockedKey, blocked), 1)))
 
 /**
  * Modified from ImGui. Dispatch key events to registered callbacks.
@@ -169,9 +169,9 @@ static void HTHotKeyWndProc(
   UINT uMsg,
   WPARAM wParam,
   LPARAM lParam,
-  UINT blocked
+  u08 *blocked
 ) {
-  HTKeyEventFlags blockedKey = blocked
+  HTKeyEventFlags blockedKey = *blocked
     ? HTKeyEventFlags_Blocked
     : HTKeyEventFlags_None;
 
@@ -194,7 +194,7 @@ static void HTHotKeyWndProc(
         : HTKeyEventFlags_Up;
 
       if (key == HTKey_PrintScreen && !isKeyDown)
-        HTHotkeyDispatch(key, HTKeyEventFlags_Down | repeat | blockedKey);
+        HTHotkeyDispatch(key, HTKeyEventFlags_Down | repeat | blockedKey, blocked);
       else if (vk == VK_SHIFT) {
         HTHotkeyCheck(VK_LSHIFT, HTKey_LeftShift);
         HTHotkeyCheck(VK_LSHIFT, HTKey_LeftShift);
@@ -205,7 +205,7 @@ static void HTHotKeyWndProc(
         HTHotkeyCheck(VK_LMENU, HTKey_LeftAlt);
         HTHotkeyCheck(VK_RMENU, HTKey_RightAlt);
       } else if (key != HTKey_None)
-        HTHotkeyDispatch(key, down | repeat | blockedKey);
+        HTHotkeyDispatch(key, down | repeat | blockedKey, blocked);
       break;
     }
     case WM_LBUTTONDOWN:
@@ -227,7 +227,7 @@ static void HTHotKeyWndProc(
         button = (GET_XBUTTON_WPARAM(wParam) == XBUTTON1)
           ? HTKey_MouseX1
           : HTKey_MouseX2;
-      HTHotkeyDispatch(button, HTKeyEventFlags_Down | blockedKey);
+      HTHotkeyDispatch(button, HTKeyEventFlags_Down | blockedKey, blocked);
       break;
     }
     case WM_LBUTTONUP:
@@ -245,23 +245,23 @@ static void HTHotKeyWndProc(
         button = (GET_XBUTTON_WPARAM(wParam) == XBUTTON1)
           ? HTKey_MouseX1
           : HTKey_MouseX2;
-      HTHotkeyDispatch(button, HTKeyEventFlags_Up | blockedKey);
+      HTHotkeyDispatch(button, HTKeyEventFlags_Up | blockedKey, blocked);
       break;
     }
     case WM_MOUSEWHEEL: {
       f32 mouseDelta = (f32)GET_WHEEL_DELTA_WPARAM(wParam) / (f32)WHEEL_DELTA;
       if (mouseDelta > 0)
-        HTHotkeyDispatch(HTKey_MouseWheelUp, HTKeyEventFlags_Down | blockedKey);
+        HTHotkeyDispatch(HTKey_MouseWheelUp, HTKeyEventFlags_Down | blockedKey, blocked);
       else
-        HTHotkeyDispatch(HTKey_MouseWheelDown, HTKeyEventFlags_Down | blockedKey);
+        HTHotkeyDispatch(HTKey_MouseWheelDown, HTKeyEventFlags_Down | blockedKey, blocked);
       break;
     }
     case WM_MOUSEHWHEEL: {
       f32 mouseDelta = (f32)GET_WHEEL_DELTA_WPARAM(wParam) / (f32)WHEEL_DELTA;
       if (mouseDelta > 0)
-        HTHotkeyDispatch(HTKey_MouseWheelRight, HTKeyEventFlags_Down | blockedKey);
+        HTHotkeyDispatch(HTKey_MouseWheelRight, HTKeyEventFlags_Down | blockedKey, blocked);
       else
-        HTHotkeyDispatch(HTKey_MouseWheelLeft, HTKeyEventFlags_Down | blockedKey);
+        HTHotkeyDispatch(HTKey_MouseWheelLeft, HTKeyEventFlags_Down | blockedKey, blocked);
       break;
     }
   }
@@ -277,7 +277,7 @@ static LRESULT APIENTRY HTWndProc(
   WPARAM wParam,
   LPARAM lParam
 ) {
-  UINT block = 0;
+  u08 block = 0;
   ImGuiIO &io = ImGui::GetIO();
 
   // Dispatch the window message to ImGui.
@@ -304,7 +304,7 @@ static LRESULT APIENTRY HTWndProc(
       block = io.WantCaptureKeyboard;
       break;
   }
-  HTHotKeyWndProc(hWnd, uMsg, wParam, lParam, block);
+  HTHotKeyWndProc(hWnd, uMsg, wParam, lParam, &block);
   if (block)
     return 0;
 

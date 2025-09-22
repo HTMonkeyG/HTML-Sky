@@ -475,10 +475,12 @@ typedef i32 HTKeyEventPreventFlags;
 typedef enum {
   // Pass the event as normal.
   HTKeyEventPreventFlags_None = 0,
-  // Prevent the game from receiving the key message.
+  // Prevent the game from receiving the key message. Setting this flag in any
+  // of the callbacks will prevent events from being passed down.
   HTKeyEventPreventFlags_Game = 1 << 0,
   // Prevent the next event callback listening the key from receiving the key
-  // message.
+  // message. We do not ensure the order of the callbacks, so this flag may
+  // affect other mod's behaviour uncontrollable.
   HTKeyEventPreventFlags_Next = 1 << 1,
 } HTKeyEventPreventFlags_;
 

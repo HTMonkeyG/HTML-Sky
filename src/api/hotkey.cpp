@@ -17,7 +17,8 @@ static i32 gKeyModifyCooldown = 0;
  */
 void HTHotkeyDispatch(
   HTKeyCode key,
-  HTKeyEventFlags flags
+  HTKeyEventFlags flags,
+  u08 *userSetBlocked
 ) {
   std::vector<ModKeyBind *> localCallbacks;
   bool blocked = flags & HTKeyEventFlags_Blocked;
@@ -41,7 +42,8 @@ void HTHotkeyDispatch(
   event.down = flags == HTKeyEventFlags_Down;
   event.key = key;
   event.flags = flags;
-  
+  event.preventFlags = HTKeyEventPreventFlags_None;
+
   for (auto it = localCallbacks.begin(); it != localCallbacks.end(); it++) {
     if (blocked && !((*it)->flags & HTHotkeyFlags_NoBlock))
       // Skip all key binds which isn't marked as NoBlock when the key event
@@ -57,7 +59,14 @@ void HTHotkeyDispatch(
       event.hKey = *it;
       cb(&event);
     }
+
+    if (event.preventFlags & HTKeyEventPreventFlags_Next)
+      // Prevent the event pass to the next callback.
+      break;
   }
+
+  if (event.preventFlags & HTKeyEventPreventFlags_Game)
+    *userSetBlocked = 1;
 }
 
 void HTHotkeySetCooldown() {

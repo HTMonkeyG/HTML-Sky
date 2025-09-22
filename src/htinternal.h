@@ -253,7 +253,7 @@ ImGuiKey HTKeyToImGuiKey(
  * Dispatch a key event to all related callbacks.
  */
 void HTHotkeyDispatch(
-  HTKeyCode key, HTKeyEventFlags flags);
+  HTKeyCode key, HTKeyEventFlags flags, u08 *userSetBlocked);
 
 /**
  * After changing the key binding, there is a cooldown to prevent key message
