@@ -224,6 +224,11 @@ static DWORD WINAPI onAttach(LPVOID lpParam) {
 
   // Load mods after the menu is created.
   WaitForSingleObject(gEventGuiInit, 30000);
+
+  std::wstring optionsPath(gPathDataWide);
+  optionsPath += L"\\options.json";
+  HTLoadOptionsFromFile(optionsPath.c_str());
+
   HTLoadMods();
 
   return 0;

@@ -54,4 +54,6 @@ void HTBootstrap() {
   runtimeSelf->loaderFunc.pfn_HTModOnEnable = nullptr;
   runtimeSelf->loaderFunc.pfn_HTModOnInit = modOnInit;
   runtimeSelf->loaderFunc.pfn_HTModRenderGui = HTRenderGUI;
+
+  HTLoadOptionsFor(runtimeSelf);
 }

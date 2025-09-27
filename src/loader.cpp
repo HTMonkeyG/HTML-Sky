@@ -215,6 +215,8 @@ static void expandMods() {
       it->second.runtime = runtimeData;
 
       HTiRegisterHandle(hMod, HTHandleType_Mod);
+
+      HTLoadOptionsFor(runtimeData);
     }
   }
 }

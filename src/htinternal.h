@@ -19,7 +19,24 @@ extern "C" {
 #endif
 
 // ----------------------------------------------------------------------------
-// [SECTION] Mod loader globals.
+// [SECTION] Mod loader logger.
+// ----------------------------------------------------------------------------
+
+#define LOGI(format, ...) HTLogA("[INFO] " format, ##__VA_ARGS__)
+#define WLOGI(format, ...) HTLogW(L"[INFO] " format, ##__VA_ARGS__)
+#define LOGW(format, ...) HTLogA("[WARN] " format, ##__VA_ARGS__)
+#define WLOGW(format, ...) HTLogW(L"[WARN] " format, ##__VA_ARGS__)
+#define LOGE(format, ...) HTLogA("[ERR] " format, ##__VA_ARGS__)
+#define WLOGE(format, ...) HTLogW(L"[ERR] " format, ##__VA_ARGS__)
+#define LOGEF(format, ...) HTLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
+#define WLOGEF(format, ...) HTLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
+
+void HTInitLogger(const wchar_t *fileName, i08 allocConsole);
+void HTLogA(const char *format, ...);
+void HTLogW(const wchar_t *format, ...);
+
+// ----------------------------------------------------------------------------
+// [SECTION] Mod loader globals and internal functions.
 // ----------------------------------------------------------------------------
 
 #define HTSetErrorAndReturn(e, v) (HTSetLastError(e), v)
@@ -98,27 +115,6 @@ static inline std::string HTiReadFileAsUtf8(std::wstring path) {
 
   return buffer;
 }
-
-// ----------------------------------------------------------------------------
-// [SECTION] Mod loader logger.
-// ----------------------------------------------------------------------------
-
-#define LOGI(format, ...) HTLogA("[INFO] " format, ##__VA_ARGS__)
-#define WLOGI(format, ...) HTLogW(L"[INFO] " format, ##__VA_ARGS__)
-#define LOGW(format, ...) HTLogA("[WARN] " format, ##__VA_ARGS__)
-#define WLOGW(format, ...) HTLogW(L"[WARN] " format, ##__VA_ARGS__)
-#define LOGE(format, ...) HTLogA("[ERR] " format, ##__VA_ARGS__)
-#define WLOGE(format, ...) HTLogW(L"[ERR] " format, ##__VA_ARGS__)
-#define LOGEF(format, ...) HTLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
-#define WLOGEF(format, ...) HTLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
-
-void HTInitLogger(const wchar_t *fileName, i08 allocConsole);
-void HTLogA(const char *format, ...);
-void HTLogW(const wchar_t *format, ...);
-
-// ----------------------------------------------------------------------------
-// [SECTION] Mod loader functions.
-// ----------------------------------------------------------------------------
 
 // Check if the given file exists.
 static inline i32 HTiFileExists(const wchar_t *path) {
@@ -283,6 +279,24 @@ static inline bool HTiCheckHandleType(
     return true;
   return it->second == type;
 }
+
+// ----------------------------------------------------------------------------
+// [SECTION] Option loader declarations.
+// ----------------------------------------------------------------------------
+
+struct ModLoaderOptions {
+  // Mod options is related with package name.
+  std::map<std::string, ModRuntime> modOptions;
+};
+
+extern ModLoaderOptions gModLoaderOptions;
+
+HTStatus HTLoadOptionsFromFile(
+  const wchar_t *);
+void HTLoadOptionsFor(
+  ModRuntime *);
+HTStatus HTWriteOptionsToFile(
+  const wchar_t *);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Bootstrap declarations.
