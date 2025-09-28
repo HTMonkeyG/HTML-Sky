@@ -1806,9 +1806,10 @@ static cJSON_bool print_object(const cJSON * const item, printbuffer * const out
             }
             for (i = 0; i < output_buffer->depth; i++)
             {
-                *output_pointer++ = '  ';
+                *output_pointer++ = ' ';
+                *output_pointer++ = ' ';
             }
-            output_buffer->offset += output_buffer->depth;
+            output_buffer->offset += output_buffer->depth * 2;
         }
 
         /* print key */
@@ -1870,7 +1871,8 @@ static cJSON_bool print_object(const cJSON * const item, printbuffer * const out
         size_t i;
         for (i = 0; i < (output_buffer->depth - 1); i++)
         {
-            *output_pointer++ = '\t';
+            *output_pointer++ = ' ';
+            *output_pointer++ = ' ';
         }
     }
     *output_pointer++ = '}';

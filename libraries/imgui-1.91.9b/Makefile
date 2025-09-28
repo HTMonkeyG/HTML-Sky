@@ -2,6 +2,7 @@ CXX = g++
 AR = ar
 
 CFLAGS = -std=c++11 -g -Wall -Wformat -I. -I./backends -I../vulkan/Include
+CFLAGS += -DNDEBUG -DIMGUI_API=__declspec(dllexport)
 
 all: libimgui.a libimgui_impl_win32.a libimgui_impl_vulkan.a
 
