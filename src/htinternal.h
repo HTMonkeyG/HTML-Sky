@@ -294,7 +294,7 @@ extern ModLoaderOptions gModLoaderOptions;
 // Load options from the specified file.
 HTStatus HTiOptionsLoadFromFile(
   const wchar_t *);
-// Try to assign the loaded options for a mod.
+// Try to assign the loaded options for a mod's runtime data.
 void HTiOptionsLoadFor(
   ModRuntime *);
 // Mark as needing to save options.

@@ -253,7 +253,7 @@ BOOL APIENTRY DllMain(
 
 #ifdef NDEBUG
     // No log file and console.
-    HTInitLogger(nullptr, 1);
+    HTInitLogger(nullptr, 0);
 #else
     // Create console.
     HTInitLogger(nullptr, 1);
@@ -277,6 +277,8 @@ BOOL APIENTRY DllMain(
     CreateThread(
       nullptr, 0, onAttach, (LPVOID)hModule, 0, nullptr);
   } else if (dwReason == DLL_PROCESS_DETACH) {
+    // Forcely update all options.
+    HTiOptionsUpdate(10000.0f);
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();
     FreeLibrary(hWinHttp);

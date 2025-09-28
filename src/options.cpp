@@ -11,47 +11,59 @@ static f32 gOptionsDirtyTimer = 0.0f;
 
 ModLoaderOptions gModLoaderOptions;
 
+/**
+ * "key_bindings": {
+ *   "<key name>": <key code>,
+ *   ...
+ * }
+ */
 static void deserializeModKeyBinds(
   const cJSON *json,
   ModRuntime *fakeRT
 ) {
-  cJSON *item;
-  cJSON_ArrayForEach(item, json) {
+  cJSON *keyBindings = cJSON_GetObjectItemCaseSensitive(json, "key_bindings")
+    , *item;
+
+  cJSON_ArrayForEach(item, keyBindings) {
     if (!item->string)
       continue;
-    const char *keyName = item->string;
     if (!cJSON_IsNumber(item))
       continue;
+
+    const char *keyName = item->string;
     HTKeyCode key = (HTKeyCode)(i32)cJSON_GetNumberValue(item);
     fakeRT->keyBinds[keyName].key = key;
     fakeRT->keyBinds[keyName].isRegistered = 0;
+
     LOGI("  Loaded key '%s': '%s'\n", keyName, HTHotkeyGetName(key));
   }
 }
 
 /**
- * "key_bindings": {
+ * "mod_options": {
  *   "<mod name>": {
- *     "<key name>": <key code>,
- *     ...
+ *     "key_bindings": {
+ *       "<key name>": <key code>,
+ *       ...
+ *     }
  *   },
  *   ...
  * }
  */
-static void deserializeAllKeyBinds(
-  const cJSON *json
+static void deserializeAllMods(
+  const cJSON *root
 ) {
-  cJSON *keyBinds = cJSON_GetObjectItemCaseSensitive(json, "key_bindings")
+  cJSON *modOptions = cJSON_GetObjectItemCaseSensitive(root, "mod_options")
     , *item;
-  cJSON_ArrayForEach(item, keyBinds) {
+  cJSON_ArrayForEach(item, modOptions) {
     if (!item->string)
       continue;
     const char *packageName = item->string;
-
-    LOGI("Loading key binds for '%s'\n", packageName);
+    LOGI("Loading options for '%s'\n", packageName);
 
     if (!cJSON_IsObject(item))
       continue;
+
     deserializeModKeyBinds(
       item,
       &gModLoaderOptions.modOptions[packageName]);
@@ -71,7 +83,7 @@ HTStatus HTiOptionsLoadFromFile(
   if (!json)
     return HT_FAIL;
 
-  deserializeAllKeyBinds(json);
+  deserializeAllMods(json);
 
   cJSON_Delete(json);
 
@@ -81,14 +93,13 @@ HTStatus HTiOptionsLoadFromFile(
 void HTiOptionsLoadFor(
   ModRuntime *realRT
 ) {
-  auto packageName = realRT->manifest->meta.packageName;
+  auto &packageName = realRT->manifest->meta.packageName;
   auto pOption = &gModLoaderOptions.modOptions;
 
   auto modOption = pOption->find(packageName);
-  if (modOption != pOption->end()) {
+  if (modOption != pOption->end())
     // Assign key bindings.
     realRT->keyBinds = modOption->second.keyBinds;
-  }
 }
 
 void HTiOptionsMarkDirty() {
@@ -112,34 +123,55 @@ void HTiOptionsUpdate(
   }
 }
 
+static void mergeOptionsForMod(
+  ModRuntime *fakeRT,
+  ModRuntime *realRT
+) {
+  for (auto it = realRT->keyBinds.begin(); it != realRT->keyBinds.end(); it++)
+    // We only care about the key codes.
+    fakeRT->keyBinds[it->first].key = it->second.key;
+}
+
 static void saveOptionsForMod(
-  cJSON *root,
+  cJSON *modOptions,
+  const std::string &packageName,
   ModRuntime *rt
 ) {
-  auto packageName = rt->manifest->meta.packageName.c_str();
+  auto fakeRT = &gModLoaderOptions.modOptions[packageName];
+  cJSON *singleMod = cJSON_CreateObject()
+    , *keyBindings = cJSON_CreateObject();
 
   // Save key bindings.
-  if (!rt->keyBinds.empty()) {
-    cJSON *keyBindings = cJSON_GetObjectItemCaseSensitive(root, "key_bindings");
-    cJSON *mod = cJSON_CreateObject();
-    for (auto it = rt->keyBinds.begin(); it != rt->keyBinds.end(); it++)
+  if (!fakeRT->keyBinds.empty()) {
+    for (auto it = fakeRT->keyBinds.begin(); it != fakeRT->keyBinds.end(); it++)
       cJSON_AddNumberToObject(
-        mod,
+        keyBindings,
         it->first.c_str(),
         (double)(int)it->second.key);
-    cJSON_AddItemToObject(keyBindings, packageName, mod);
+    cJSON_AddItemToObject(singleMod, "key_bindings", keyBindings);
   }
+
+  cJSON_AddItemToObject(modOptions, packageName.c_str(), singleMod);
 }
 
 cJSON *HTiOptionsWriteToMem() {
-  cJSON *json = cJSON_CreateObject();
+  auto &memOptions = gModLoaderOptions.modOptions;
+  cJSON *root = cJSON_CreateObject()
+    , *modOptions = cJSON_CreateObject();
 
-  cJSON_AddItemToObject(json, "key_bindings", cJSON_CreateObject());
+  cJSON_AddItemToObject(root, "mod_options", modOptions);
 
-  for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++)
-    saveOptionsForMod(json, &it->second);
-  
-  return json;
+  // Merge all options to gModLoaderOptions.modOptions.
+  for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
+    auto fakeRT = &memOptions[it->second.manifest->meta.packageName];
+    // Merge options.
+    mergeOptionsForMod(fakeRT, &it->second);
+  }
+
+  for (auto it = memOptions.begin(); it != memOptions.end(); it++)
+    saveOptionsForMod(modOptions, it->first, &it->second);
+
+  return root;
 }
 
 void HTiOptionsWriteToFile(
