@@ -183,6 +183,9 @@ static HTStatus HTHotkeyBindEx(
   if (kb->listener)
     kb->listener(&event);
 
+  // Mark the options as "dirty", so we can save it after a delay.
+  HTiOptionsMarkDirty();
+
   return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 }
 

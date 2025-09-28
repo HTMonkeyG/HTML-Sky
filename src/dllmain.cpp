@@ -227,7 +227,7 @@ static DWORD WINAPI onAttach(LPVOID lpParam) {
 
   std::wstring optionsPath(gPathDataWide);
   optionsPath += L"\\options.json";
-  HTLoadOptionsFromFile(optionsPath.c_str());
+  HTiOptionsLoadFromFile(optionsPath.c_str());
 
   HTLoadMods();
 
@@ -253,7 +253,7 @@ BOOL APIENTRY DllMain(
 
 #ifdef NDEBUG
     // No log file and console.
-    HTInitLogger(nullptr, 0);
+    HTInitLogger(nullptr, 1);
 #else
     // Create console.
     HTInitLogger(nullptr, 1);

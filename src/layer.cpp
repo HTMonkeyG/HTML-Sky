@@ -596,7 +596,7 @@ static VkResult renderGui(
     ImGui::NewFrame();
 
     // Render ImGui.
-    HTUpdateGUI();
+    HTiUpdateGUI();
 
     ImGui::Render();
     ImDrawData* drawData = ImGui::GetDrawData();
@@ -845,7 +845,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkQueuePresentKHR(
     return getDeviceDispatchTable(getQueueData(queue)->device->device)->QueuePresentKHR(queue, pPresentInfo);
   if (!gGuiStatus.isInited) {
     initVulkan();
-    HTInitGUI();
+    HTiInitGUI();
     gGuiStatus.isInited = 1;
   }
   return renderGui(queue, pPresentInfo);

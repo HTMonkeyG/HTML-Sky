@@ -216,7 +216,7 @@ static void expandMods() {
 
       HTiRegisterHandle(hMod, HTHandleType_Mod);
 
-      HTLoadOptionsFor(runtimeData);
+      HTiOptionsLoadFor(runtimeData);
     }
   }
 }

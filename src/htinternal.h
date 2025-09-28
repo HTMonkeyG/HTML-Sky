@@ -291,11 +291,19 @@ struct ModLoaderOptions {
 
 extern ModLoaderOptions gModLoaderOptions;
 
-HTStatus HTLoadOptionsFromFile(
+// Load options from the specified file.
+HTStatus HTiOptionsLoadFromFile(
   const wchar_t *);
-void HTLoadOptionsFor(
+// Try to assign the loaded options for a mod.
+void HTiOptionsLoadFor(
   ModRuntime *);
-HTStatus HTWriteOptionsToFile(
+// Mark as needing to save options.
+void HTiOptionsMarkDirty();
+// Save all options to gModLoaderOptions. Called by HTiUpdateGUI().
+void HTiOptionsUpdate(
+  f32);
+// Write options to the specified file.
+void HTiOptionsWriteToFile(
   const wchar_t *);
 
 // ----------------------------------------------------------------------------
@@ -316,18 +324,18 @@ extern bool gShowMainMenu
   , gShowDebugger;
 
 // Initialize ImGui style and colors.
-void HTInitGUI();
+void HTiInitGUI();
 // Destroy ImGui context.
-void HTDeinitGUI();
+void HTiDeinitGUI();
 // Show all registered windows. Referenced by layer.cpp.
-void HTUpdateGUI();
+void HTiUpdateGUI();
 // Render HTML windows. Referenced by bootstrap.cpp.
-void HTRenderGUI(
+void HTiRenderGUI(
   f32, void *);
 
 // Toggle main menu display status. Referenced by bootstrap.cpp, the callback
 // of hKeyMenuToggle.
-void HTToggleMenuState(
+void HTiToggleMenuState(
   HTKeyEvent *);
 
 // Submenus.

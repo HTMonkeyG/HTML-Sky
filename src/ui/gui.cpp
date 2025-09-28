@@ -19,7 +19,7 @@ bool gShowMainMenu = true
  * 
  * This function only be called after the game window is catched.
  */
-void HTInitGUI() {
+void HTiInitGUI() {
   if (!gGameStatus.window)
     return;
   if (ImGui::GetCurrentContext())
@@ -71,7 +71,7 @@ void HTInitGUI() {
 /**
  * Shutdown ImGui. Currently unused.
  */
-void HTDeinitGUI() {
+void HTiDeinitGUI() {
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();
@@ -80,7 +80,7 @@ void HTDeinitGUI() {
 /**
  * Render all windows registered by mods.
  */
-void HTUpdateGUI() {
+void HTiUpdateGUI() {
   ImGuiIO &io = ImGui::GetIO();
 
   // Draw all windows.
@@ -89,16 +89,19 @@ void HTUpdateGUI() {
     if (guiRenderer)
       guiRenderer(io.DeltaTime, nullptr);
   }
+
+  // Update all options.
+  HTiOptionsUpdate(io.DeltaTime);
 }
 
-void HTRenderGUI(f32, void *) {
+void HTiRenderGUI(f32, void *) {
   if (gShowDebugger)
     HTWindowDebugger(&gShowDebugger);
   if (gShowMainMenu)
     HTWindowMain(&gShowMainMenu);
 }
 
-void HTToggleMenuState(HTKeyEvent *event) {
+void HTiToggleMenuState(HTKeyEvent *event) {
   if ((event->flags & HTKeyEventFlags_Mask) == HTKeyEventFlags_Down)
     gShowMainMenu = !gShowMainMenu;
 }
