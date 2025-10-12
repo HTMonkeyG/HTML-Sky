@@ -134,10 +134,16 @@ typedef enum {
   HTError_InvalidHandle = 6,
   // ERROR_INVALID_PARAMETER.
   HTError_InvalidParam = 87,
+  // ERROR_MOD_NOT_FOUND.
+  HTError_ModuleNotFound = 126,
+  // ERROR_ALREADY_EXISTS.
+  HTError_AlreadyExists = 183,
   // ERROR_NO_MORE_ITEMS.
   HTError_NoMoreItems = 259,
   // ERROR_NO_MORE_MATCHES.
-  HTError_NoMoreMatches = 626
+  HTError_NoMoreMatches = 626,
+  // ERROR_NOT_FOUND.
+  HTError_NotFound = 1168
 } HTError_;
 
 HTMLAPIATTR void HTMLAPI HTSetLastError(
@@ -145,8 +151,11 @@ HTMLAPIATTR void HTMLAPI HTSetLastError(
 HTMLAPIATTR HTError HTMLAPI HTGetLastError();
 
 // ----------------------------------------------------------------------------
-// [SECTION] HTML signature scan APIs.
+// [SECTION] HTML assembly patch APIs.
 // ----------------------------------------------------------------------------
+
+// Enable or disable all hooks or patches created by the specified mod.
+#define HT_ALL_HOOKS NULL
 
 // Method for obtaining the final address.
 typedef enum {
@@ -162,82 +171,92 @@ typedef enum {
 typedef struct {
   // Signature code.
   LPCSTR sig;
-  // Function name, only for debug use.
-  LPCSTR name;
   // Method for obtaining the final address.
   HTSigScanType indirect;
   // The byte offset of 0xE8 or 0x15 byte for HT_SCAN_E8 and HT_SCAN_FF15, or
   // the byte offset to the first instruction for HT_SCAN_DIRECT.
   UINT32 offset;
-} HTSignature;
-
-/**
- * Scan with signature.
- */
-HTMLAPIATTR LPVOID HTMLAPI HTSigScan(
-  const HTSignature *signature);
+} HTAsmSig;
 
 // Function address config.
 typedef struct {
-  // The address of the detour function if hooked.
-  LPVOID detour;
+  // Function name, only for debug use.
+  LPCSTR name;
   // The address of the scanned function.
   LPVOID fn;
+  // The address of the detour function if hooked.
+  LPVOID detour;
   // The address of the trampoline function if hooked.
   LPVOID origin;
-} HTHookFunction;
+} HTAsmFunction;
+
+/**
+ * Scan with signature. Note that HTSigScan functions won't call HTSetLastError
+ * to set the error code.
+ */
+HTMLAPIATTR LPVOID HTMLAPI HTSigScan(
+  const HTAsmSig *signature);
 
 /**
  * Scan a single function.
  */
 HTMLAPIATTR LPVOID HTMLAPI HTSigScanFunc(
-  const HTSignature *signature, HTHookFunction *func);
+  const HTAsmSig *signature, HTAsmFunction *func);
 
 /**
  * Scan an array of functions.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTSigScanFuncEx(
-  const HTSignature **signature, HTHookFunction **func, UINT32 size);
-
-// ----------------------------------------------------------------------------
-// [SECTION] HTML inline hook APIs.
-// ----------------------------------------------------------------------------
+  const HTAsmSig **signature, HTAsmFunction **func, UINT32 count);
 
 /**
- * Install hook with MinHook.
+ * Create hook with MinHook. This function won't record the function name.
  */
-HTMLAPIATTR HTStatus HTMLAPI HTInstallHook(
-  LPVOID fn, LPVOID detour, LPVOID *origin);
+HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
+  HMODULE hModuleOwner, LPVOID fn, LPVOID detour, LPVOID *origin);
+
+/**
+ * Creates a hook for the specified API function with MinHook.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateAPI(
+  HMODULE hModuleOwner, LPCWSTR hModule, LPCSTR func, LPVOID detour, LPVOID *origin, LPVOID *target);
+
+/**
+ * Create a hook from HTHookFunction struct. We must bind the hooks to the mod,
+ * so when a mod is dynamically unloaded, we can destroy all its hooks.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreate(
+  HMODULE hModuleOwner, HTAsmFunction *func);
 
 /**
  * Enable hook on specified function.
  */
-HTMLAPIATTR HTStatus HTMLAPI HTEnableHook(
-  LPVOID fn);
+HTMLAPIATTR HTStatus HTMLAPI HTAsmHookEnable(
+  HMODULE hModuleOwner, LPVOID fn);
 
 /**
  * Disable hook on specified function.
  */
-HTMLAPIATTR HTStatus HTMLAPI HTDisableHook(
-  LPVOID fn);
+HTMLAPIATTR HTStatus HTMLAPI HTAsmHookDisable(
+  HMODULE hModuleOwner, LPVOID fn);
 
 /**
- * Install hook from HTHookFunction struct.
+ * [Future] Create a patch on specified address.
  */
-HTMLAPIATTR HTStatus HTMLAPI HTInstallHookEx(
-  HTHookFunction *func);
+HTMLAPIATTR HTStatus HTMLAPI HTAsmPatchCreate(
+  HMODULE hModuleOwner, LPVOID target, LPCVOID data, UINT64 size);
 
 /**
- * Enable hook on specified function.
- */ 
-HTMLAPIATTR HTStatus HTMLAPI HTEnableHookEx(
-  HTHookFunction *func);
-
-/**
- * Disable hook on specified function.
+ * [Future] Enable patch.
  */
-HTMLAPIATTR HTStatus HTMLAPI HTDisableHookEx(
-  HTHookFunction *func);
+HTMLAPIATTR HTStatus HTMLAPI HTAsmPatchEnable(
+  HMODULE hModuleOwner, LPVOID target);
+
+/**
+ * [Future] Disable patch.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTAsmPatchDisable(
+  HMODULE hModuleOwner, LPVOID target);
 
 // ----------------------------------------------------------------------------
 // [SECTION] HTML memory manager APIs.

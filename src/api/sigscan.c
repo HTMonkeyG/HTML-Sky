@@ -184,10 +184,10 @@ static void *sigScanFF15(const char *moduleName, const char *sig, i32 offset) {
   return (void *)result;
 }
 
-HTMLAPIATTR void *HTMLAPI HTSigScan(const HTSignature *signature) {
+HTMLAPIATTR void *HTMLAPI HTSigScan(const HTAsmSig *signature) {
   if (!signature)
     return NULL;
-  
+
   if (signature->indirect == HT_SCAN_DIRECT)
     return sigScan("Sky.exe", signature->sig, signature->offset);
   else if (signature->indirect == HT_SCAN_E8)
@@ -199,8 +199,8 @@ HTMLAPIATTR void *HTMLAPI HTSigScan(const HTSignature *signature) {
 }
 
 HTMLAPIATTR void *HTMLAPI HTSigScanFunc(
-  const HTSignature *signature,
-  HTHookFunction *func
+  const HTAsmSig *signature,
+  HTAsmFunction *func
 ) {
   if (!signature)
     return NULL;
@@ -209,18 +209,18 @@ HTMLAPIATTR void *HTMLAPI HTSigScanFunc(
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTSigScanFuncEx(
-  const HTSignature **signature,
-  HTHookFunction **func,
-  UINT32 size
+  const HTAsmSig **signature,
+  HTAsmFunction **func,
+  UINT32 count
 ) {
   HTStatus result = HT_SUCCESS;
-  const HTSignature *sig;
-  HTHookFunction *f;
+  const HTAsmSig *sig;
+  HTAsmFunction *f;
 
-  if (!signature || !func || !size)
+  if (!signature || !func || !count)
     return HT_FAIL;
 
-  for (u32 i = 0; i < size; i++) {
+  for (u32 i = 0; i < count; i++) {
     sig = signature[i];
     f = func[i];
     if (!sig || !f)

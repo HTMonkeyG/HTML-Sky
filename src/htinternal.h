@@ -39,7 +39,7 @@ void HTiLogW(const wchar_t *format, ...);
 // [SECTION] Mod loader globals and internal functions.
 // ----------------------------------------------------------------------------
 
-#define HTSetErrorAndReturn(e, v) (HTSetLastError(e), v)
+#define HTiErrAndRet(e, v) (HTSetLastError(e), v)
 
 extern HTGameStatus gGameStatus;
 extern char gPathDll[MAX_PATH]
@@ -160,7 +160,8 @@ typedef enum {
   HTHandleType_Manifest,
   HTHandleType_Mod,
   HTHandleType_Hotkey,
-  HTHandleType_Command
+  HTHandleType_Command,
+  HTHandleType_Asm
 } HTHandleType;
 
 // Paths to related files of the mod.
@@ -210,6 +211,12 @@ struct ModInternalFunctions {
   PFN_HTModRenderGui pfn_HTModRenderGui;
 };
 
+// Assembly patch manager of a mod.
+struct ModAsmManager {
+  HMODULE owner;
+  u64 refCount;
+};
+
 // Registered key bind of a mod.
 struct ModKeyBind {
   // Key internal identifier. May be prewritten.
@@ -239,7 +246,7 @@ struct ModRuntime {
   // Shared functions.
   std::map<std::string, PFN_HTVoidFunction> functions;
   // Registered hotkeys.
-  std::map<std::string, ModKeyBind> keyBinds; 
+  std::map<std::string, ModKeyBind> keyBinds;
 };
 
 extern std::map<std::string, ModManifest> gModDataLoader;

@@ -26,10 +26,11 @@ void HTiInitGUI() {
     // Prevent duplicate initialization.
     return;
 
-  // Initialize ImGui. ImGui_ImplVulkan_Init() is called in layer.cpp by
-  // renderGui().
+  // Initialize ImGui.
   ImGui::CreateContext();
   ImGui_ImplWin32_Init(gGameStatus.window);
+  // ImGui_ImplVulkan_Init() is called in layer.cpp by renderGui(), logically
+  // after calling HTiInitGUI().
   ImGuiIO &io = ImGui::GetIO();
   ImGuiStyle &style = ImGui::GetStyle();
   io.IniFilename = gPathGuiIni;

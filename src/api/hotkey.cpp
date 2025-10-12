@@ -108,16 +108,16 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
 
   if (!hModule || !name)
     // Invalid param.
-    return (HTHandle)HTSetErrorAndReturn(HTError_InvalidParam, HT_INVALID_HANDLE);
+    return (HTHandle)HTiErrAndRet(HTError_InvalidParam, HT_INVALID_HANDLE);
 
   rt = HTiGetModRuntime(hModule);
   if (!rt)
     // Module handle is invalid.
-    return (HTHandle)HTSetErrorAndReturn(HTError_InvalidHandle, HT_INVALID_HANDLE);
+    return (HTHandle)HTiErrAndRet(HTError_InvalidHandle, HT_INVALID_HANDLE);
 
   if (defaultCode != HTKey_None && !HTiIsNamedKey(defaultCode))
     // Register fails when the defaultCode is invalid.
-    return (HTHandle)HTSetErrorAndReturn(HTError_InvalidParam, HT_INVALID_HANDLE);
+    return (HTHandle)HTiErrAndRet(HTError_InvalidParam, HT_INVALID_HANDLE);
 
   auto it = rt->keyBinds.find(name);
   if (it != rt->keyBinds.end())
@@ -139,7 +139,7 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
   gHotkeyCallbacks[result->key].insert(result);
   HTiRegisterHandle(result, HTHandleType_Hotkey);
 
-  return HTSetErrorAndReturn(HTError_Success, result);
+  return HTiErrAndRet(HTError_Success, result);
 }
 
 static HTStatus HTHotkeyBindEx(
@@ -151,9 +151,9 @@ static HTStatus HTHotkeyBindEx(
   HTKeyEvent event;
 
   if (!hKey)
-    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   if (!HTiCheckHandleType(hKey, HTHandleType_Hotkey))
-    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
   kb = (ModKeyBind *)hKey;
 
@@ -161,7 +161,7 @@ static HTStatus HTHotkeyBindEx(
     keyCode = kb->defaultKey;
   if (kb->key == keyCode)
     // If the key is not changed, we won't actually set the key.
-    return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
+    return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 
   event.flags = reset
     ? HTKeyEventFlags_ChangeBind
@@ -186,7 +186,7 @@ static HTStatus HTHotkeyBindEx(
   // Mark the options as "dirty", so we can save it after a delay.
   HTiOptionsMarkDirty();
 
-  return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
+  return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
@@ -223,9 +223,9 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyListen(
   ModKeyBind *kb;
 
   if (!hKey || !callback)
-    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   if (!HTiCheckHandleType(hKey, HTHandleType_Hotkey))
-    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
   kb = (ModKeyBind *)hKey;
   {
@@ -243,9 +243,9 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyUnlisten(
   ModKeyBind *kb;
 
   if (!hKey)
-    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   if (!HTiCheckHandleType(hKey, HTHandleType_Hotkey))
-    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
   kb = (ModKeyBind *)hKey;
   {

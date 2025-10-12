@@ -4,7 +4,7 @@
 #include "includes/htmodloader.h"
 #include "htinternal.h"
 
-static HTError gLastError = HTError_Success;
+static thread_local HTError gLastError = HTError_Success;
 
 HTMLAPIATTR void HTMLAPI HTSetLastError(
   HTError dwError
