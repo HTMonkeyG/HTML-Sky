@@ -610,6 +610,11 @@ HTMLAPIATTR HTStatus HTMLAPI HTTellText(
 HTMLAPIATTR HTStatus HTMLAPI HTTellTextV(
   LPCSTR format, va_list v);
 
+/**
+ * Prints raw text on the in-game console.
+ * 
+ * This function disables color escape sequences.
+ */
 HTMLAPIATTR HTStatus HTMLAPI HTTellRaw(
   LPCSTR format, ...);
 
