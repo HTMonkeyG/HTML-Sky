@@ -584,7 +584,6 @@ static VkResult renderGui(
       initInfo.PipelineCache = VK_NULL_HANDLE;
       initInfo.Subpass = 0;
       ImGui_ImplVulkan_Init(&initInfo);
-      ImGui_ImplVulkan_CreateFontsTexture();
 
       // Set the gui inited event.
       SetEvent(gEventGuiInit);

@@ -1,0 +1,15 @@
+{
+  "package_name": "modtest",
+  "version": "1.0.0",
+  "game_edition": 3,
+  "mod_name": "Mod Test",
+  "description": "Test mod of HT's Mod Loader",
+  "main": "modtest.dll",
+  "dependencies": {},
+  "keywords": [
+    "test"
+  ],
+  "author": "HTMonkeyG",
+  "license": "MIT",
+  "website": ""
+}

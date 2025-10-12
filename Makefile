@@ -26,8 +26,8 @@ CFLAGS += -I./src
 LFLAGS = -Wl,--gc-sections,-O3,--version-script,$(SRC_DIR)/exports.txt,--out-implib,$(DIST_DIR)/htmodloader.lib
 LFLAGS += -lgdi32 -ldwmapi -ld3dcompiler -lstdc++
 # Include ImGui.
-CFLAGS += -I./libraries/imgui-1.91.9b -I./libraries/imgui-1.91.9b/backends
-LFLAGS += -L./libraries/imgui-1.91.9b -limgui -limgui_impl_win32 -limgui_impl_vulkan
+CFLAGS += -I./libraries/imgui-1.92.2b -I./libraries/imgui-1.92.2b/backends
+LFLAGS += -L./libraries/imgui-1.92.2b -limgui -limgui_impl_win32 -limgui_impl_vulkan
 # Include MinHook.
 CFLAGS += -I./libraries/MinHook/include
 LFLAGS += -L./libraries/MinHook -lMinHook
@@ -70,11 +70,11 @@ all: libs
 
 libs:
 	@echo Compiling libraries ...
-	-@$(MAKE) -s -C ./libraries/imgui-1.91.9b all
+	-@$(MAKE) -s -C ./libraries/imgui-1.92.2b all
 	-@$(MAKE) -s -C ./libraries/MinHook libMinHook.a
 	-@$(MAKE) -s -C ./libraries/cJSON libcjson.a
 
 clean_libs:
-	-@$(MAKE) -s -C ./libraries/imgui-1.91.9b clean
+	-@$(MAKE) -s -C ./libraries/imgui-1.92.2b clean
 	-@$(MAKE) -s -C ./libraries/MinHook clean
 	-@$(MAKE) -s -C ./libraries/cJSON clean
