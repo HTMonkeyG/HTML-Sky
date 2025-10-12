@@ -371,8 +371,11 @@ void HTiWindowMain(
 
 // Console functions.
 void HTiClearConsole();
+void HTiRenderConsoleTexts();
+void HTiAddConsoleLineV(
+  bool raw, const char *fmt, va_list args);
 void HTiAddConsoleLine(
-  const char* fmt, ...);
+  bool raw, const char *fmt, ...);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Input handler related functions.

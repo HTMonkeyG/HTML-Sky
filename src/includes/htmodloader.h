@@ -26,6 +26,7 @@
 
 // Includes.
 #include <windows.h>
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -590,6 +591,30 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyListen(
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyUnlisten(
   HTHandle hKey,
   LPVOID reserved);
+
+// ----------------------------------------------------------------------------
+// [SECTION] HTML console text APIs.
+// ----------------------------------------------------------------------------
+
+/**
+ * Prints text on the in-game console.
+ * 
+ * Use '§' to represent color code, §0~§f represents the color in the terminal
+ * escape sequence, §#<DWORD> which DWORD is a hex color code in AABBGGRR
+ * format represents full RGBA color. Color codes won't be displayed on the
+ * console.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTTellText(
+  LPCSTR format, ...);
+
+HTMLAPIATTR HTStatus HTMLAPI HTTellTextV(
+  LPCSTR format, va_list v);
+
+HTMLAPIATTR HTStatus HTMLAPI HTTellRaw(
+  LPCSTR format, ...);
+
+HTMLAPIATTR HTStatus HTMLAPI HTTellRawV(
+  LPCSTR format, va_list v);
 
 #ifdef __cplusplus
 }

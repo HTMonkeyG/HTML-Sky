@@ -168,33 +168,6 @@ static int inputCallback(ImGuiInputTextCallbackData *data) {
   return 0;
 }
 
-void HTiAddConsoleLine(const char* fmt, ...) {
-  char buf[1024];
-  va_list args;
-  size_t len;
-  void *mem;
-
-  va_start(args, fmt);
-  vsnprintf_s(buf, IM_ARRAYSIZE(buf), fmt, args);
-  buf[IM_ARRAYSIZE(buf) - 1] = 0;
-  va_end(args);
-
-  len = strlen(buf) + 1;
-  mem = ImGui::MemAlloc(len);
-  if (gLines.size() >= CONSOLE_MAX_LINE)
-    // Remove the earliest line if the maximum number of lines is reached.
-    gLines.erase(gLines.begin());
-
-  // Add our new line.
-  gLines.push_back((char *)memcpy(mem, (const void*)buf, len));
-}
-
-void HTiClearConsole() {
-  for (int i = 0; i < gLines.Size; i++)
-    ImGui::MemFree(gLines[i]);
-  gLines.clear();
-}
-
 void HTiMenuConsole() {
   ImGuiListClipper clipper;
   f32 height;
@@ -214,11 +187,7 @@ void HTiMenuConsole() {
       ImGui::EndPopup();
     }
 
-    clipper.Begin(gLines.Size);
-    while (clipper.Step())
-      for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-        ImGui::TextUnformatted(gLines[i]);
-      }
+    HTiRenderConsoleTexts();
   }
   ImGui::EndChild();
   ImGui::Separator();
@@ -237,7 +206,7 @@ void HTiMenuConsole() {
   )) {
     // Pressed enter.
     reclaimFocus = true;
-    HTiAddConsoleLine("%s", gConsoleInputBuffer);
+    HTiAddConsoleLine(false, "%s", gConsoleInputBuffer);
     gConsoleInputBuffer[0] = 0;
   }
 
