@@ -107,3 +107,16 @@ void HTiToggleMenuState(HTKeyEvent *event) {
   if ((event->flags & HTKeyEventFlags_Mask) == HTKeyEventFlags_Down)
     gShowMainMenu = !gShowMainMenu;
 }
+
+void HTiScanFonts() {
+  std::wstring fontPath{gPathDataWide};
+  fontPath += L"\\fonts";
+
+  
+}
+
+void HTiSetGlobalFont(
+  const char *name
+) {
+
+}

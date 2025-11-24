@@ -223,6 +223,7 @@ void HTiMenuConsole() {
 
 static void displayLoaderSettings() {
   ImGui::Checkbox("Show debugger", &gShowDebugger);
+  //ImGui::Combo()
 }
 
 /**
@@ -268,7 +269,7 @@ void HTiMenuModList() {
   for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); ++it, i++) {
     ModManifest &manifest = it->second;
 
-    // Don't display mods that isn't expanded successfully.
+    // Don't display mods that didn't expanded successfully.
     if (!manifest.runtime)
       continue;
 

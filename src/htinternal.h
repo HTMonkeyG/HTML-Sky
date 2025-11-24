@@ -413,6 +413,9 @@ void HTiSetupAll();
 // is "htmodloader", version is HTML_VERSION_NAME.
 void HTiBootstrap();
 
+// Scan all avaliable fonts.
+void HTiScanFonts();
+
 // ----------------------------------------------------------------------------
 // [SECTION] Graphic declarations.
 // ----------------------------------------------------------------------------
