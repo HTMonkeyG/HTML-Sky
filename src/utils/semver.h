@@ -27,12 +27,18 @@ typedef struct {
   SemVerField *pBuild;
 } SemVer;
 
-SemVer *HTiSemVerParse(
+// Parse a semver from string.
+const SemVer *HTiSemVerParse(
   const char *);
+
+// Delete a semver object.
 void HTiSemVerDelete(
-  SemVer *);
+  const SemVer *);
+
+// Compare two semver object.
 int HTiSemVerCompare(
-  SemVer *, SemVer *);
+  const SemVer *,
+  const SemVer *);
 
 #ifdef __cplusplus
 }

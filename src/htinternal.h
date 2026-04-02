@@ -12,6 +12,7 @@
 #include "imgui.h"
 
 #include "includes/htmodloader.h"
+#include "utils/semver.h"
 #include "htaliases.h"
 
 #ifdef __cplusplus

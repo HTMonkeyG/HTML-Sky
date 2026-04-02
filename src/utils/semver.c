@@ -238,12 +238,14 @@ int HTiSemVerCompare(
     return -1;
   
   if (a->minor > b->minor)
-    return 1;
+    return 2;
   else if (a->minor < b->minor)
-    return -1;
+    return -2;
   
   if (a->patch > b->patch)
-    return 1;
+    return 3;
   else if (a->patch < b->patch)
-    return -1;
+    return -3;
+
+  return 0;
 }
