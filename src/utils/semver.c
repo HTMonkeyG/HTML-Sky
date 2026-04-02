@@ -209,7 +209,7 @@ ErrRet:
 }
 
 void HTiSemVerDelete(
-  SemVer *semver
+  const SemVer *semver
 ) {
   for (uint32_t i = 0; i < semver->releaseCount; i++) {
     if (!semver->pRelease[i].isNumeric)
@@ -227,8 +227,8 @@ void HTiSemVerDelete(
 }
 
 int HTiSemVerCompare(
-  SemVer *a,
-  SemVer *b
+  const SemVer *a,
+  const SemVer *b
 ) {
   int result = 0;
 

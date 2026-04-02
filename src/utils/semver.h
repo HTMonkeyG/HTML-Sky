@@ -28,7 +28,7 @@ typedef struct {
 } SemVer;
 
 // Parse a semver from string.
-const SemVer *HTiSemVerParse(
+SemVer *HTiSemVerParse(
   const char *);
 
 // Delete a semver object.
