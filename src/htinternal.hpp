@@ -660,4 +660,86 @@ void HTiHotkeySetCooldown();
 i32 HTiInitLDB();
 i32 HTiDeinitLDB();
 
+// ----------------------------------------------------------------------------
+// [SECTION] Semantic version parser and comparator.
+// ----------------------------------------------------------------------------
+
+class HTiSemVer {
+public:
+    // Check if a string is a valid SemVer.
+  static bool valid(
+    const std::string &v,
+    bool loose = false);
+
+  // Clean a string, extracting a valid SemVer if possible.
+  static std::string clean(
+    const std::string &v,
+    bool loose = false);
+
+  // Coerce a string into a SemVer if possible.
+  static HTiSemVer coerce(
+    const std::string &v,
+    bool includePrerelease = false,
+    bool rtl = false);
+
+  // Test if a version satisfies a range expression.
+  static bool satisfies(
+    const std::string &version,
+    const std::string &range,
+    bool loose = false,
+    bool includePrerelease = false);
+
+  static bool satisfies(
+    const HTiSemVer &ver,
+    const std::string &range,
+    bool loose = false,
+    bool includePrerelease = false);
+
+  // Constructor.
+  HTiSemVer();
+  HTiSemVer(
+    int major,
+    int minor,
+    int patch,
+    const std::vector<std::string> &prerelease = {},
+    const std::vector<std::string> &build = {});
+
+  // Parse a version string. Returns true on success.
+  bool read(const std::string &version);
+
+  // Format the version as a standard SemVer string.
+  std::string write() const;
+
+  // Comparison operators
+  bool operator==(const HTiSemVer &other) const;
+  bool operator!=(const HTiSemVer &other) const;
+  bool operator<=(const HTiSemVer &other) const;
+  bool operator>=(const HTiSemVer &other) const;
+  bool operator<(const HTiSemVer &other) const;
+  bool operator>(const HTiSemVer &other) const;
+
+  // Accessors.
+  int getMajor() const { return major; }
+  int getMinor() const { return minor; }
+  int getPatch() const { return patch; }
+  const std::vector<std::string> &getPrerelease() const { return prerelease; }
+  const std::vector<std::string> &getBuild() const { return build; }
+
+  // Forward declaration.
+  friend class SemverCondition;
+
+private:
+  // Core comparison logic.
+  int compare(const HTiSemVer &other) const;
+
+  // Internal parsing.
+  bool parse(const std::string &input, bool loose);
+
+  int major;
+  int minor;
+  int patch;
+  std::vector<std::string> prerelease;
+  std::vector<std::string> build;
+};
+
 #endif
