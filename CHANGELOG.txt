@@ -6,7 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
-- Added SemVer support.
+- Added npm-like SemVer support.
 - Renamed `htinternal.h` to `htinternal.hpp`.
 - Refactor backend register system.
 - Removed HTML_USE_IMPL_PROXY.

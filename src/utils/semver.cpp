@@ -389,12 +389,18 @@ bool HTiSemVer::operator>=(const HTiSemVer &other) const {
 // [SECTION] Static helper functions
 // ----------------------------------------------------------------------------
 
-bool HTiSemVer::valid(const std::string &v, bool loose) {
+bool HTiSemVer::valid(
+  const std::string &v,
+  bool loose
+) {
   HTiSemVer tmp;
   return tmp.parse(v, loose);
 }
 
-std::string HTiSemVer::clean(const std::string &v, bool loose) {
+std::string HTiSemVer::clean(
+  const std::string &v,
+  bool loose
+) {
   HTiSemVer tmp;
   if (tmp.parse(v, loose))
     return tmp.write();
@@ -404,7 +410,8 @@ std::string HTiSemVer::clean(const std::string &v, bool loose) {
 HTiSemVer HTiSemVer::coerce(
   const std::string &v,
   bool includePrerelease,
-  bool rtl) {
+  bool rtl
+) {
 
   std::string s = v;
   std::size_t pos = 0;
