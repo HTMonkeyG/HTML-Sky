@@ -2,10 +2,48 @@ This file contains the changelog of HTModLoader.
 
 
 -------------------------------------------------------------------------------
- Version 1.9.0 WIP
+ Version 1.10.0 WIP
 -------------------------------------------------------------------------------
 
 Changes:
+- Renamed `htinternal.h` to `htinternal.hpp`.
+- Refactor backend register system.
+- Removed HTML_USE_IMPL_PROXY.
+
+
+-------------------------------------------------------------------------------
+ Version 1.9.0
+-------------------------------------------------------------------------------
+
+Breaking Changes:
+- Added module handle requirement for `HTCommOnEvent()` and `HTCommOffEvent()`.
+- Changed `gGameProcessName` to wide string.
+
+Changes:
+- Exposed HTiPath functions as HTPath functions.
+- Added debugger menu.
+- Optimized the implementation of HTAsmHook functions.
+- Added validations for dll path and package name.
+- Changed the LOG macros to empty when disabling logs.
+- Added `HTiPathIsAbsolute()`.
+- Added HTiPath functions to concat or resolve paths.
+- Added `HTSigScanEx()` to scan signature codes in other modules.
+- Normalized all enum declarations.
+- Fixed the wrong placeholder during log printing when scanning the mods.
+
+
+-------------------------------------------------------------------------------
+ Version 1.8.2
+-------------------------------------------------------------------------------
+
+Changes:
+- Added default log path.
+- Fixed the issue where the mod loader saved the runtime of mods that failed to
+  load the library.
+- Mod loader will set the dll searching directory to the folder of the mod.
+- Added preprocess configure to disable the logger.
+- Added namespace prefix for macros in htconfig.h
+- Changed glnull backend to not compile by default.
 - Added "null" backends as templates.
 - Fixed the unchanged module name in signature scanning.
 
@@ -54,7 +92,7 @@ Changes:
   string.
 - The main menu won't reset its size on every launch of the game.
 - Fixed possible buffer overflow in HTML Console.
-- Formatted all function declarations in htmodloader.h and htinternal.h
+- Formatted all function declarations in htmodloader.h and htinternal.hpp
 - Added HTOptionGetCustom() and HTOptionSetCustom() for mods to save their own options
   and config.
 - Added demo for HTOptionGetCustom() and HTOptionSetCustom().

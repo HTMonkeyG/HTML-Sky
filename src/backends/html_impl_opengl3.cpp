@@ -9,10 +9,10 @@
 #include "imgui_impl_opengl3.h"
 
 #include "includes/backends/html_impl_opengl3.h"
-#include "htinternal.h"
 #include "includes/htconfig.h"
+#include "htinternal.hpp"
 
-#ifdef USE_IMPL_OPENGL3
+#ifdef HTML_USE_IMPL_OPENGL3
 
 #define HT_IMGL3W_IMPL
 #include "html_impl_opengl3_loader.h"
@@ -136,12 +136,16 @@ int HTi_ImplOpenGL3_Init() {
   (void)GL_MINOR_VERSION;
   (void)glGetString;
 
+  LOG("[ImplOpenGL3][INFO] HTi_ImplOpenGL3_Init() called.\n");
+
   // We don't want to create a new thread and wait, so we load gdi32.dll
   // directly.
   // To keep the hook effective, we don't free the dll.
   hDllOpengl32 = LoadLibraryA("opengl32.dll");
-  if (!hDllOpengl32)
+  if (!hDllOpengl32) {
+    LOG("[ImplOpenGL3][ERR] Failed to load 'opengl32.dll'.\n");
     return 0;
+  }
 
   s = MH_CreateHookApiEx(
     L"opengl32.dll",
@@ -156,6 +160,8 @@ int HTi_ImplOpenGL3_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplOpenGL3][INFO] Hooked wglSwapBuffers(): 0x%p.\n", function);
+
   s = MH_CreateHookApiEx(
     L"opengl32.dll",
     "wglSwapLayerBuffers",
@@ -169,6 +175,8 @@ int HTi_ImplOpenGL3_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplOpenGL3][INFO] Hooked wglSwapLayerBuffers(): 0x%p.\n", function);
+
   return 1;
 }
 
@@ -177,5 +185,10 @@ int HTi_ImplOpenGL3_Shutdown() {
   FreeLibrary(hDllOpengl32);
   return 1;
 }
+
+const HTiBackendRegister g_register_ImplOpenGL3{
+  HT_ImplOpenGL3_Name,
+  HTi_ImplOpenGL3_Init
+};
 
 #endif

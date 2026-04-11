@@ -1,4 +1,4 @@
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 std::map<std::string, ModManifest> gModDataLoader;
 std::map<HMODULE, ModRuntime> gModDataRuntime;

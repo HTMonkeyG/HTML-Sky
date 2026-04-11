@@ -7,21 +7,22 @@
 #include <set>
 #include <vector>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "imgui.h"
 
 #include "includes/htmodloader.h"
-#include "utils/semver.h"
+#include "includes/htconfig.h"
 #include "htaliases.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // ----------------------------------------------------------------------------
 // [SECTION] Mod loader logger.
 // ----------------------------------------------------------------------------
+
+#ifdef HTML_ENABLE_LOGGER
+#define LOG(format, ...) HTiLogA(format, ##__VA_ARGS__)
+#define WLOG(format, ...) HTiLogW(format, ##__VA_ARGS__)
 
 #define LOGI(format, ...) HTiLogA("[INFO] " format, ##__VA_ARGS__)
 #define WLOGI(format, ...) HTiLogW(L"[INFO] " format, ##__VA_ARGS__)
@@ -31,6 +32,19 @@ extern "C" {
 #define WLOGE(format, ...) HTiLogW(L"[ERR] " format, ##__VA_ARGS__)
 #define LOGEF(format, ...) HTiLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
 #define WLOGEF(format, ...) HTiLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
+#else
+#define LOG(format, ...) 
+#define WLOG(format, ...)
+
+#define LOGI(format, ...)
+#define WLOGI(format, ...)
+#define LOGW(format, ...)
+#define WLOGW(format, ...)
+#define LOGE(format, ...)
+#define WLOGE(format, ...)
+#define LOGEF(format, ...)
+#define WLOGEF(format, ...)
+#endif
 
 void HTiInitLogger(
   const wchar_t *fileName,
@@ -43,10 +57,18 @@ void HTiLogW(
   ...);
 
 // ----------------------------------------------------------------------------
-// [SECTION] Mod loader globals and internal functions.
+// [SECTION] Mod loader globals.
 // ----------------------------------------------------------------------------
 
 #define HTiErrAndRet(e, v) (HTSetLastError(e), v)
+
+typedef std::mutex HTMutex;
+typedef std::shared_mutex HTMutexShared;
+
+typedef std::shared_lock<HTMutexShared> HTLockReadable;
+typedef std::lock_guard<HTMutexShared> HTLockShared;
+
+typedef std::lock_guard<HTMutex> HTLockMutex;
 
 extern HTGameStatus gGameStatus;
 extern char gPathDll[MAX_PATH]
@@ -59,6 +81,10 @@ extern wchar_t gPathModsWide[MAX_PATH]
 extern HANDLE gHeap
   , gEventGuiInit;
 extern HMODULE gModLoaderHandle;
+
+// ----------------------------------------------------------------------------
+// [SECTION] Codepage, file and path.
+// ----------------------------------------------------------------------------
 
 // Convert string from wchar_t to UTF-8.
 static inline void wcstoutf8(
@@ -88,7 +114,7 @@ static inline std::wstring HTiUtf8ToWstring(
   const char *input
 ) {
   if (!input)
-    return std::wstring();
+    return L"";
   u64 len = strlen(input);
   std::wstring result;
   i32 size = MultiByteToWideChar(CP_UTF8, 0, input, len, nullptr, 0);
@@ -102,7 +128,7 @@ static inline std::string HTiWstringToUtf8(
   const wchar_t *input
 ) {
   if (!input)
-    return std::string();
+    return "";
   std::string result;
   i32 size = WideCharToMultiByte(CP_UTF8, 0, input, -1, nullptr, 0, nullptr, nullptr);
   result.resize(size);
@@ -112,7 +138,7 @@ static inline std::string HTiWstringToUtf8(
 
 // Read file as UTF-8 encoding with _wfopen.
 static inline std::string HTiReadFileAsUtf8(
-  std::wstring path
+  const std::wstring &path
 ) {
   std::string buffer;
   FILE *fd = _wfopen(path.c_str(), L"rb");
@@ -151,6 +177,36 @@ static inline i32 HTiFolderExists(
     return 0;
   return 1;
 }
+
+// Normalizes the given path, resolving '..' and '.' segments.
+std::wstring HTiPathNormalize(
+  const std::wstring &);
+
+// Joins all given path segments together using the platform-specific separator
+// as a delimiter, then normalizes the resulting path.
+std::wstring HTiPathJoin(
+  const std::vector<std::wstring> &);
+
+// Resolves a sequence of paths or path segments into an absolute path.
+std::wstring HTiPathResolve(
+  const std::vector<std::wstring> &);
+
+// Returns the relative path from `from` to `to` based on the current working
+// directory. If from and to each resolve to the same path (after calling
+// `HTiPathResolve()` on each), a zero-length string is returned.
+// If a zero-length string is passed as from or to, the current working directory
+// will be used instead of the zero-length strings.
+std::wstring HTiPathRelative(
+  const std::wstring &from,
+  const std::wstring &to);
+
+// Determines if the literal path is absolute.
+bool HTiPathIsAbsolute(
+  const std::wstring &);
+
+// ----------------------------------------------------------------------------
+// [SECTION] Mod loader functions.
+// ----------------------------------------------------------------------------
 
 // Scan and load all mods, then call the exported HTModOnInit() function of
 // each mod.
@@ -231,12 +287,6 @@ struct ModInternalFunctions {
   PFN_HTModRenderGui pfn_HTModRenderGui;
 };
 
-// Assembly patch manager of a mod.
-struct ModAsmManager {
-  HMODULE owner;
-  u64 refCount;
-};
-
 // Registered key bind of a mod.
 struct ModKeyBind {
   // Key internal identifier. May be prewritten.
@@ -280,6 +330,41 @@ struct ModRuntime {
   std::map<std::string, ModKeyBind> keyBinds;
   // Customized options.
   std::map<std::string, ModCustomOption> options;
+};
+
+// Contexts of a patch.
+struct ModPatch {
+  // Begin address of the patch.
+  void *addr;
+  // Original data of the patch.
+  std::vector<u08> original;
+  // Patch data to be set.
+  std::vector<u08> patched;
+  // Owner of this patch.
+  HMODULE owner;
+};
+
+// Contexts of a hook.
+struct ModHook {
+  // Address of the function intended to be detoured.
+  PFN_HTVoidFunction intent;
+  // Address of the actually hooked function due to the hook chain.
+  PFN_HTVoidFunction actual;
+  // Address of the detour function.
+  PFN_HTVoidFunction detour;
+  // Trampoline function to be called.
+  PFN_HTVoidFunction trampoline;
+  // The owner of the hook.
+  HMODULE owner;
+  // The status of the hook.
+  bool isEnabled;
+  // [Invalid] The binary data of the leading JMP instructions.
+  ModPatch *header;
+  // [Invalid] Hook chain datas.
+  ModHook *next;
+  ModHook *prev;
+  // Debug only.
+  std::string name;
 };
 
 extern std::map<std::string, ModManifest> gModDataLoader;
@@ -326,6 +411,29 @@ static inline bool HTiCheckHandleType(
   return it->second == type;
 }
 
+static inline bool HTiIsExecutableAddr(
+  void *address
+) {
+  MEMORY_BASIC_INFORMATION mbi = {0};
+
+  // Check the protection of given address.
+  if (!VirtualQuery((void *)address, &mbi, sizeof(mbi)))
+    return false;
+  if (!(mbi.Protect & 0xF0))
+    // Not executable.
+    return false;
+
+  return true;
+}
+
+// Remove all event callbacks registered by the mod.
+void HTiRemoveAllEventCallbacksOf(
+  HMODULE hModuleOwner);
+
+// Find all hooks of the given mod.
+std::vector<ModHook *> HTiAsmHookFindFor(
+  HMODULE owner);
+
 // ----------------------------------------------------------------------------
 // [SECTION] Option loader declarations.
 // ----------------------------------------------------------------------------
@@ -356,11 +464,46 @@ void HTiOptionsWriteToFile(
 // [SECTION] Bootstrap and setup declarations.
 // ----------------------------------------------------------------------------
 
+// Handle of the menu key.
 extern HTHandle hKeyMenuToggle;
 
+// Backend related data.
 extern char gActiveGameBackendName[32];
 extern char gActiveGLBackendName[32];
-extern std::string gGameProcessName;
+extern std::wstring gGameProcessName;
+
+// Backend registerer.
+class HTiBackendRegister {
+  using PFN_BackendXXExpectProcess = int (*)();
+  using PFN_BackendXXInit = int (*)();
+
+public:
+  HTiBackendRegister(
+    const char *name,
+    PFN_BackendXXInit fnInit,
+    PFN_BackendXXExpectProcess fnExpectProcess = nullptr
+  )
+    : name(name)
+    , fnExpectProcess(fnExpectProcess)
+    , fnInit(fnInit)
+  {
+    prev = list();
+    list() = this;
+  }
+
+  HTiBackendRegister(const HTiBackendRegister &) = delete;
+  HTiBackendRegister &operator=(const HTiBackendRegister &) = delete;
+
+  static const HTiBackendRegister *&list() {
+    static const HTiBackendRegister *p = nullptr;
+    return p;
+  }
+
+  const char *name;
+  const HTiBackendRegister *prev;
+  PFN_BackendXXExpectProcess fnExpectProcess;
+  PFN_BackendXXInit fnInit;
+};
 
 // Set the name of currently active backends.
 // Backends should call these functions after it's actived.
@@ -373,6 +516,10 @@ int HTiSetGLBackendName(
 // codes in the executable file of the game.
 int HTiSetGameProcessName(
   const char *);
+
+// Set the name of the game executable file with wchar_t.
+int HTiSetGameProcessName(
+  const wchar_t *);
 
 // Check if the backend expects the process module name.
 // Used to quickly confirm whether full functionality needs to be enabled.
@@ -465,6 +612,13 @@ void HTiAddConsoleLine(
   const char *fmt,
   ...);
 
+#ifdef HTML_ENABLE_DEBUGGER
+
+// Debugger ui functions.
+void HTiRenderDebugger();
+
+#endif
+
 // ----------------------------------------------------------------------------
 // [SECTION] Input handler related functions.
 // ----------------------------------------------------------------------------
@@ -505,9 +659,5 @@ void HTiHotkeySetCooldown();
 
 i32 HTiInitLDB();
 i32 HTiDeinitLDB();
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

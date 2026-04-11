@@ -4,13 +4,16 @@
 #include <windows.h>
 
 #include "htaliases.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htmodloader.h"
 
 /**
  * Convert signature string to byte pattern.
  */
-static i32 *sigToPattern(const char *sig, u64 *patternLen) {
+static i32 *sigToPattern(
+  const char *sig,
+  u64 *patternLen
+) {
   u64 l, i;
   i32 *pattern;
   const char *p;
@@ -18,7 +21,7 @@ static i32 *sigToPattern(const char *sig, u64 *patternLen) {
 
   l = strlen(sig);
   if (l <= 1)
-    return NULL;
+    return nullptr;
   
   // We can ensure that (l >> 1) is larger than the actual signature array.
   pattern = (i32 *)malloc(l * sizeof(i32));
@@ -49,7 +52,11 @@ static i32 *sigToPattern(const char *sig, u64 *patternLen) {
 /**
  * Scan the specified signature in given module.
  */
-static void *sigScan(const char *moduleName, const char *sig, i32 offset) {
+static void *sigScan(
+  const wchar_t *moduleName,
+  const char *sig,
+  i32 offset
+) {
   HINSTANCE handle;
   PIMAGE_DOS_HEADER dosHeader;
   PIMAGE_NT_HEADERS ntHeaders;
@@ -59,9 +66,9 @@ static void *sigScan(const char *moduleName, const char *sig, i32 offset) {
   u08 *image
     , found;
 
-  handle = GetModuleHandleA(moduleName);
+  handle = GetModuleHandleW(moduleName);
   if (!handle)
-    return NULL;
+    return nullptr;
 
   dosHeader = (PIMAGE_DOS_HEADER)handle;
   ntHeaders = (PIMAGE_NT_HEADERS)((u08 *)handle + dosHeader->e_lfanew);
@@ -72,7 +79,7 @@ static void *sigScan(const char *moduleName, const char *sig, i32 offset) {
   if (!pattern || patternLen == 0) {
     if (pattern)
       free(pattern);
-    return NULL;
+    return nullptr;
   }
 
   u08 *scanStart = image;
@@ -114,21 +121,25 @@ static void *sigScan(const char *moduleName, const char *sig, i32 offset) {
 
   free(pattern);
 
-  return NULL;
+  return nullptr;
 }
 
 /**
  * Scan a specified signature, and calculate address using E8 or E9 relative
  * jump instructions.
  */
-static void *sigScanE8(const char *moduleName, const char *sig, i32 offset) {
+static void *sigScanE8(
+  const wchar_t *moduleName,
+  const char *sig,
+  i32 offset
+) {
   u08 *initial = (u08 *)sigScan(moduleName, sig, 0)
     , *result
     , opCode;
   i32 rel;
 
   if (!initial)
-    return NULL;
+    return nullptr;
 
   opCode = *(initial + offset);
   if (opCode == 0xE8 || opCode == 0xE9) {
@@ -140,7 +151,7 @@ static void *sigScanE8(const char *moduleName, const char *sig, i32 offset) {
       | (*(initial + offset + 4) << 24);
     result += rel;
   } else
-    return NULL;
+    return nullptr;
 
   return (void *)result;
 }
@@ -149,7 +160,11 @@ static void *sigScanE8(const char *moduleName, const char *sig, i32 offset) {
  * Scan a specified signature, and calculate address using FF15 or FF25
  * relative jump instructions.
  */
-static void *sigScanFF15(const char *moduleName, const char *sig, i32 offset) {
+static void *sigScanFF15(
+  const wchar_t *moduleName,
+  const char *sig,
+  i32 offset
+) {
   u08 *initial = (u08 *)sigScan(moduleName, sig, 0)
     , *ptr, *result
     , opCode;
@@ -157,7 +172,7 @@ static void *sigScanFF15(const char *moduleName, const char *sig, i32 offset) {
   u64 len;
 
   if (!initial)
-    return NULL;
+    return nullptr;
 
   opCode = *(initial + offset);
   if (opCode == 0x15 || opCode == 0x25) {
@@ -169,7 +184,7 @@ static void *sigScanFF15(const char *moduleName, const char *sig, i32 offset) {
       | (*(initial + offset + 4) << 24);
     ptr += rel;
   } else
-    return NULL;
+    return nullptr;
 
   if (
     !ReadProcessMemory(
@@ -180,23 +195,55 @@ static void *sigScanFF15(const char *moduleName, const char *sig, i32 offset) {
       &len)
     || len != sizeof(void *)
   )
-    return NULL;
+    return nullptr;
 
   return (void *)result;
 }
 
-HTMLAPIATTR void *HTMLAPI HTSigScan(const HTAsmSig *signature) {
-  if (!signature)
-    return NULL;
+HTMLAPIATTR void *HTMLAPI HTSigScan(
+  const HTAsmSig *signature
+) {
+  return HTSigScanEx(
+    nullptr,
+    signature);
+}
 
-  if (signature->indirect == HT_SCAN_DIRECT)
-    return sigScan(gGameProcessName.c_str(), signature->sig, signature->offset);
-  else if (signature->indirect == HT_SCAN_E8)
-    return sigScanE8(gGameProcessName.c_str(), signature->sig, signature->offset);
-  else if (signature->indirect == HT_SCAN_FF15)
-    return sigScanFF15(gGameProcessName.c_str(), signature->sig, signature->offset);
-  else
-    return NULL;
+HTMLAPIATTR void *HTMLAPI HTSigScanEx(
+  const wchar_t *moduleName,
+  const HTAsmSig *signature
+) {
+  void *result = nullptr;
+
+  if (!signature)
+    return nullptr;
+
+  if (!moduleName)
+    moduleName = gGameProcessName.c_str();
+
+  switch (signature->indirect) {
+    case HT_SCAN_DIRECT:
+      result = sigScan(
+        moduleName,
+        signature->sig,
+        signature->offset);
+      break;
+
+    case HT_SCAN_E8:
+      result = sigScanE8(
+        moduleName,
+        signature->sig,
+        signature->offset);
+      break;
+
+    case HT_SCAN_FF15:
+      result = sigScanFF15(
+        moduleName,
+        signature->sig,
+        signature->offset);
+      break;
+  }
+
+  return result;
 }
 
 HTMLAPIATTR void *HTMLAPI HTSigScanFunc(
@@ -204,8 +251,10 @@ HTMLAPIATTR void *HTMLAPI HTSigScanFunc(
   HTAsmFunction *func
 ) {
   if (!signature)
-    return NULL;
+    return nullptr;
+
   func->fn = HTSigScan(signature);
+
   return func->fn;
 }
 

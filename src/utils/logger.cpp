@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static FILE *gLogFile = NULL;
 
@@ -25,6 +25,7 @@ void HTiInitLogger(
 }
 
 void HTiLogA(const char *format, ...) {
+#ifdef HTML_ENABLE_LOGGER
   SYSTEMTIME time = {0};
   va_list arg;
 
@@ -42,9 +43,11 @@ void HTiLogA(const char *format, ...) {
   );
   vprintf(format, arg);
   va_end(arg);
+#endif
 }
 
 void HTiLogW(const wchar_t *format, ...) {
+#ifdef HTML_ENABLE_LOGGER
   SYSTEMTIME time = {0};
   va_list arg;
 
@@ -62,4 +65,5 @@ void HTiLogW(const wchar_t *format, ...) {
   );
   vwprintf(format, arg);
   va_end(arg);
+#endif
 }

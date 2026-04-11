@@ -1,7 +1,7 @@
 #include <windows.h>
 #include "imgui.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
   HWND hWnd,

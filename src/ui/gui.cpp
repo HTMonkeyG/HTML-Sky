@@ -9,7 +9,7 @@
 #include "vulkan/vulkan.h"
 
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 bool gShowMainMenu = true
   , gShowDebugger = false;

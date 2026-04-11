@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <mutex>
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static std::mutex gMutex;
 // Stores pointers to all allocated mem blocks.

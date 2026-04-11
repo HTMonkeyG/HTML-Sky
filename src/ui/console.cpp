@@ -3,7 +3,7 @@
 #include <shared_mutex>
 #include "imgui.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "htaliases.h"
 
 // Color code marker.

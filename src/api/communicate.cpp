@@ -2,13 +2,17 @@
 // Mod communication APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <shared_mutex>
-#include <unordered_set>
+#include <set>
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
-static std::unordered_map<std::string, std::unordered_set<PFN_HTEventCallback>> gEventCallbacks;
+typedef std::pair<PFN_HTEventCallback, HMODULE> EventCallbackInfo;
+typedef std::set<EventCallbackInfo> EventSet;
+
+// All event callbacks.
+static std::map<std::string, EventSet> gEventCallbacks;
 // This mutex is only for gEventCallbacks.
 static std::shared_mutex gMutex;
 
@@ -57,33 +61,44 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommRegFunction(
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTCommOnEvent(
+  HMODULE hModuleOwner,
   LPCSTR name,
   PFN_HTEventCallback callback
 ) {
   std::unique_lock<std::shared_mutex> lock(gMutex);
 
-  if (!name || !callback)
+  if (!hModuleOwner || !name || !callback)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  
-  gEventCallbacks[name].insert(callback);
+  if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
+
+  // Check the protection of given address.
+  if (!HTiIsExecutableAddr((void *)callback))
+    return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
+
+  // Insert our event callback with its owner.
+  gEventCallbacks[name].insert(std::make_pair(callback, hModuleOwner));
 
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
+  HMODULE hModuleOwner,
   LPCSTR name,
   PFN_HTEventCallback callback
 ) {
   std::unique_lock<std::shared_mutex> lock(gMutex);
 
-  if (!name || !callback)
+  if (!hModuleOwner || !name || !callback)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  
+  if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
+
   auto it = gEventCallbacks.find(name);
   if (it == gEventCallbacks.end())
     return HTiErrAndRet(HTError_NoMoreMatches, HT_FAIL);
 
-  it->second.erase(callback);
+  it->second.erase(std::make_pair(callback, hModuleOwner));
 
   if (it->second.empty())
     gEventCallbacks.erase(it);
@@ -96,7 +111,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
   LPVOID reserved,
   LPVOID data
 ) {
-  std::vector<PFN_HTEventCallback> localCallbacks;
+  std::vector<EventCallbackInfo> localCallbacks;
 
   if (!name)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
@@ -114,11 +129,36 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
     localCallbacks.assign(it->second.begin(), it->second.end());
   }
 
-  for (auto it = localCallbacks.begin(); it != localCallbacks.end(); it++) {
-    PFN_HTEventCallback cb = *it;
+  for (const auto &it: localCallbacks) {
+    PFN_HTEventCallback cb = it.first;
     if (cb)
       cb(data);
   }
 
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
+}
+
+void HTiRemoveAllEventCallbacksOf(
+  HMODULE hModuleOwner
+) {
+  std::unique_lock<std::shared_mutex> lock(gMutex);
+
+  for (auto itEvent = gEventCallbacks.begin(); itEvent != gEventCallbacks.end(); ) {
+    auto &callbacks = itEvent->second;
+
+    // Walks along all callbacks of current event.
+    for (auto itCallback = callbacks.begin(); itCallback != callbacks.end(); ) {
+      if (itCallback->second == hModuleOwner)
+        // Remove the callback from the mod.
+        itCallback = callbacks.erase(itCallback);
+      else
+        itCallback++;
+
+      // Remove the event entry if the event is empty.
+      if (callbacks.empty())
+        itEvent = gEventCallbacks.erase(itEvent);
+      else
+        itEvent++;
+    }
+  }
 }

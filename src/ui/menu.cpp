@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "imgui.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 // Widget widths.
 #define HOTKEY_DISPLAY_WIDTH 120.0
@@ -222,7 +222,13 @@ void HTiMenuConsole() {
 // ----------------------------------------------------------------------------
 
 static void displayLoaderSettings() {
+#ifndef HTML_ENABLE_DEBUGGER
+  ImGui::BeginDisabled();
   ImGui::Checkbox("Show debugger", &gShowDebugger);
+  ImGui::EndDisabled();
+#else
+  ImGui::Checkbox("Show debugger", &gShowDebugger);
+#endif
 }
 
 /**

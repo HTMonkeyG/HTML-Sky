@@ -5,7 +5,7 @@
 #include "imgui.h"
 #include "utils/texts.h"
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 // Cooldown timer in frames.
 #define HOTKEY_MODIFY_COOLDOWN 5

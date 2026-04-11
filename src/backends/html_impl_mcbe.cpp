@@ -6,11 +6,11 @@
 #include <windows.h>
 #include "MinHook.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/backends/html_impl_mcbe.h"
 #include "includes/htconfig.h"
 
-#ifdef USE_IMPL_MCBE
+#ifdef HTML_USE_IMPL_MCBE
 
 #define HTTexts_WndNamePostfixW L"Minecraft"
 #define HTTexts_WndClassW L"OGLES"
@@ -20,8 +20,8 @@ typedef HWND (WINAPI *PFN_CreateWindowExA)(
 typedef HWND (WINAPI *PFN_CreateWindowExW)(
   DWORD, LPCWSTR, LPCWSTR, DWORD, i32, i32, i32, i32, HWND, HMENU, HINSTANCE, LPVOID);
 
-static PFN_CreateWindowExA fn_CreateWindowExA;
-static PFN_CreateWindowExW fn_CreateWindowExW;
+static PFN_CreateWindowExA fn_CreateWindowExA = nullptr;
+static PFN_CreateWindowExW fn_CreateWindowExW = nullptr;
 
 static i32 editionCheck(
   HTGameEdition edition
@@ -49,6 +49,8 @@ static i32 checkWindowAndSetupAW(
   if (gGameStatus.window)
     return 0;
 
+  LOG("[ImplMCBE][INFO] checkWindowAndSetupAW() called for hWnd: 0x%p.\n", hWnd);
+
   // Get the game edition from window name.
   GetWindowTextW(hWnd, buffer, 32);
   buffer[31] = 0;
@@ -69,6 +71,8 @@ static i32 checkWindowAndSetupAW(
   status.pid = GetCurrentProcessId();
   status.window = hWnd;
   HTiSetGameStatus(&status);
+
+  LOG("[ImplMCBE][INFO] Game status set for hWnd: 0x%p.\n", hWnd);
 
   // Set edition check function.
   HTiBackendSetEditionCheckFunc((PFN_HTVoidFunction)editionCheck);
@@ -185,6 +189,8 @@ int HTi_ImplMCBE_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplMCBE][INFO] Hooked CreateWindowExA(): 0x%p.\n", function);
+
   s = MH_CreateHookApiEx(
     L"user32.dll",
     "CreateWindowExW",
@@ -197,7 +203,15 @@ int HTi_ImplMCBE_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplMCBE][INFO] Hooked CreateWindowExW(): 0x%p.\n", function);
+
   return 1;
 }
+
+const HTiBackendRegister g_register_ImplMCBE{
+  HT_ImplMCBE_Name,
+  HTi_ImplMCBE_Init,
+  HTi_ImplMCBE_ExpectProcess
+};
 
 #endif

@@ -21,10 +21,10 @@
 #include <map>
 
 #include "includes/backends/html_impl_vklayer.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htconfig.h"
 
-#ifdef USE_IMPL_VKLAYER
+#ifdef HTML_USE_IMPL_VKLAYER
 
 // ----------------------------------------------------------------------------
 // [SECTION] Type declarations.
@@ -1067,6 +1067,8 @@ int HTi_ImplVkLayer_Init() {
   MH_STATUS s;
   void *function;
 
+  LOG("[ImplVklayer][INFO] HTi_ImplVkLayer_Init() called.\n");
+
   strcpy(gPathLayerConfig, gPathDll);
   strcat(gPathLayerConfig, "\\html-config.json");
 
@@ -1075,6 +1077,7 @@ int HTi_ImplVkLayer_Init() {
     // Try to create html-config.json
     FILE *fd = _wfopen(path.c_str(), L"w+");
     if (fd) {
+      LOG("[ImplVklayer][INFO] Create html-config.json at %ls\n", path.c_str());
       fwrite(
         HTTexts_DefaultLayerConfig,
         sizeof(char),
@@ -1096,7 +1099,14 @@ int HTi_ImplVkLayer_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplVklayer][INFO] Hooked RegEnumValueA(): 0x%p\n", function);
+
   return 1;
 }
+
+const HTiBackendRegister g_register_ImplVkLayer{
+  HT_ImplVkLayer_Name,
+  HTi_ImplVkLayer_Init
+};
 
 #endif

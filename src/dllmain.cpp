@@ -9,7 +9,7 @@
 
 #include "proxy/winhttp-proxy.h"
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static HMODULE hWinHttp;
 
@@ -114,7 +114,9 @@ BOOL APIENTRY DllMain(
     initPaths(hModule);
 
     // No log file and console by default.
-    HTiInitLogger(nullptr, 0);
+#ifdef HTML_ENABLE_LOGGER
+    HTiInitLogger(L"html-log.log", 0);
+#endif
     LOGI("HTML attatched.\n");
 
     MH_Initialize();

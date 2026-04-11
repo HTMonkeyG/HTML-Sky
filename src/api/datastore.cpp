@@ -1,7 +1,7 @@
 #include <string>
 
 #include "leveldb_c.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static leveldb_t *gLevelDB = nullptr;
 static leveldb_writeoptions_t *gWriteOptions = nullptr;

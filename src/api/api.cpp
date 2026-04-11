@@ -3,11 +3,11 @@
 // ----------------------------------------------------------------------------
 #include "imgui.h"
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static thread_local HTError gLastError = HTError_Success;
 
-HTMLAPIATTR void HTMLAPI HTSetLastError(
+HTMLAPIATTR VOID HTMLAPI HTSetLastError(
   HTError dwError
 ) {
   gLastError = dwError;
@@ -17,13 +17,13 @@ HTMLAPIATTR HTError HTMLAPI HTGetLastError() {
   return gLastError;
 }
 
-HTMLAPIATTR void HTMLAPI HTGetLoaderVersion(
+HTMLAPIATTR VOID HTMLAPI HTGetLoaderVersion(
   UINT32 *result
 ) {
   *result = HTML_VERSION;
 }
 
-HTMLAPIATTR void HTMLAPI HTGetLoaderVersionName(
+HTMLAPIATTR VOID HTMLAPI HTGetLoaderVersionName(
   LPSTR result,
   UINT32 max
 ) {
@@ -34,14 +34,14 @@ HTMLAPIATTR void HTMLAPI HTGetLoaderVersionName(
   strncpy(result, HTML_VERSION_NAME, max - 1);
 }
 
-HTMLAPIATTR void HTMLAPI HTGetGameStatus(
+HTMLAPIATTR VOID HTMLAPI HTGetGameStatus(
   HTGameStatus *status
 ) {
   if (status)
     *status = gGameStatus;
 }
 
-HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
+HTMLAPIATTR VOID HTMLAPI HTGetGameExeFolder(
   LPSTR result,
   UINT64 maxLen
 ) {
@@ -50,7 +50,7 @@ HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
   strcpy_s(result, maxLen, gPathGameExe);
 }
 
-HTMLAPIATTR void HTMLAPI HTGetModFolder(
+HTMLAPIATTR VOID HTMLAPI HTGetModFolder(
   LPSTR result,
   UINT64 maxLen
 ) {
@@ -106,7 +106,7 @@ HTMLAPIATTR HTHandle HTMLAPI HTGetModManifest(
   return (HTHandle)rt->manifest;
 }
 
-HTMLAPIATTR u32 HTMLAPI HTGetModInfoFrom(
+HTMLAPIATTR UINT32 HTMLAPI HTGetModInfoFrom(
   HTHandle hManifest,
   HTModInfoFields info,
   LPVOID out,
@@ -258,7 +258,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionSetCustom(
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 }
 
-HTMLAPIATTR void HTMLAPI HTGetActiveBackendName(
+HTMLAPIATTR VOID HTMLAPI HTGetActiveBackendName(
   LPSTR gl,
   LPSTR game
 ) {
@@ -271,4 +271,99 @@ HTMLAPIATTR void HTMLAPI HTGetActiveBackendName(
     strncpy(game, gActiveGameBackendName, 31);
     game[31] = 0;
   }
+}
+
+static u32 copyOrReturn(
+  wchar_t *buffer,
+  const std::wstring &str,
+  u32 maxLen
+) {
+  if (str.size() >= maxLen)
+    return 0;
+  if (!buffer)
+    return str.size() + 1;
+
+  wcsncpy(buffer, str.c_str(), maxLen - 1);
+  buffer[maxLen - 1] = 0;
+
+  return str.size() + 1;
+}
+
+HTMLAPIATTR UINT32 HTMLAPI HTPathNormalize(
+  LPWSTR result,
+  LPCWSTR path,
+  UINT32 maxLen
+) {
+  if (!path)
+    return 0;
+
+  std::wstring normalized = HTiPathNormalize(path);
+
+  return copyOrReturn(
+    result,
+    normalized,
+    maxLen);
+}
+
+HTMLAPIATTR UINT32 HTMLAPI HTPathJoin(
+  LPWSTR result,
+  LPCWSTR *paths,
+  UINT32 maxLen
+) {
+  if (!paths)
+    return 0;
+
+  std::vector<std::wstring> arrayPaths;
+  for (int i = 0; paths[i]; i++)
+    arrayPaths.push_back(paths[i]);
+
+  std::wstring joined = HTiPathJoin(arrayPaths);
+
+  return copyOrReturn(
+    result,
+    joined,
+    maxLen);
+}
+
+HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
+  LPWSTR result,
+  LPCWSTR *paths,
+  UINT32 maxLen
+) {
+  if (!paths)
+    return 0;
+
+  std::vector<std::wstring> arrayPaths;
+  for (int i = 0; paths[i]; i++)
+    arrayPaths.push_back(paths[i]);
+
+  std::wstring resolved = HTiPathResolve(arrayPaths);
+
+  return copyOrReturn(
+    result,
+    resolved,
+    maxLen);
+}
+
+HTMLAPIATTR UINT32 HTMLAPI HTPathRelative(
+  LPWSTR result,
+  LPCWSTR path1,
+  LPCWSTR path2,
+  UINT32 maxLen
+) {
+  if (!path1 || !path2)
+    return 0;
+
+  std::wstring relative = HTiPathRelative(path1, path2);
+
+  return copyOrReturn(
+    result,
+    relative,
+    maxLen);
+}
+
+HTMLAPIATTR UINT32 HTMLAPI HTPathIsAbsolute(
+  LPCWSTR path
+) {
+  return HTiPathIsAbsolute(path);
 }

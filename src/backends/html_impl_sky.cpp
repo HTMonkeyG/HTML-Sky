@@ -9,11 +9,11 @@
 #include <atomic>
 #include "MinHook.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/backends/html_impl_sky.h"
 #include "includes/htconfig.h"
 
-#ifdef USE_IMPL_SKY
+#ifdef HTML_USE_IMPL_SKY
 
 #define HTTexts_WndClassW L"TgcMainWindow"
 #define HTTexts_WndNameInW L"Sky"
@@ -43,13 +43,17 @@ static i32 editionCheck(
   return 0;
 }
 
-static i32 checkWindowAndSetupAW(HWND hWnd) {
+static i32 checkWindowAndSetupAW(
+  HWND hWnd
+) {
   wchar_t buffer[32];
   HTGameStatus status;
   HTGameEdition edition = HT_ImplNull_EditionUnknown;
 
   if (gGameStatus.window)
     return 0;
+
+  LOG("[ImplSky][INFO] checkWindowAndSetupAW() called for hWnd: 0x%p.\n", hWnd);
 
   // Get the game edition from window name.
   GetWindowTextW(hWnd, buffer, 32);
@@ -73,6 +77,8 @@ static i32 checkWindowAndSetupAW(HWND hWnd) {
   status.pid = GetCurrentProcessId();
   status.window = hWnd;
   HTiSetGameStatus(&status);
+
+  LOG("[ImplSky][INFO] Game status set for hWnd: 0x%p.\n", hWnd);
 
   // Set edition check function.
   HTiBackendSetEditionCheckFunc((PFN_HTVoidFunction)editionCheck);
@@ -174,6 +180,8 @@ int HTi_ImplSky_Init() {
   if (!HTi_ImplSky_ExpectProcess())
     return 0;
 
+  LOG("[ImplSky][INFO] HTi_ImplSky_Init() called.\n");
+
   HTiSetGameBackendName(HT_ImplSky_Name);
   HTiSetGameProcessName(HT_ImplSky_ExecutableName);
 
@@ -188,6 +196,8 @@ int HTi_ImplSky_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplSky][INFO] Hooked CreateWindowExA(): 0x%p.\n", function);
+
   s = MH_CreateHookApiEx(
     L"user32.dll",
     "CreateWindowExW",
@@ -199,7 +209,15 @@ int HTi_ImplSky_Init() {
   if (MH_EnableHook(function) != MH_OK)
     return 0;
 
+  LOG("[ImplSky][INFO] Hooked CreateWindowExW(): 0x%p.\n", function);
+
   return 1;
 }
+
+const HTiBackendRegister g_register_ImplSky{
+  HT_ImplSky_Name,
+  HTi_ImplSky_Init,
+  HTi_ImplSky_ExpectProcess
+};
 
 #endif

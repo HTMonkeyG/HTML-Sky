@@ -6,7 +6,7 @@
 #include <mutex>
 #include "imgui.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htconfig.h"
 
 typedef int (HTMLAPI *PFN_HTiGameEditionCheck)(
@@ -19,7 +19,7 @@ static PFN_HTiGameEditionCheck gEditionCheck = checkEditionDefault;
 
 char gActiveGameBackendName[32] = {0};
 char gActiveGLBackendName[32] = {0};
-std::string gGameProcessName;
+std::wstring gGameProcessName;
 
 static i32 checkEditionDefault(
   HTGameEdition edition
@@ -71,30 +71,32 @@ int HTiSetGameBackendName(
 ) {
   strncpy(gActiveGameBackendName, game, 31);
   gActiveGameBackendName[31] = 0;
+
   return 1;
 }
 
 int HTiSetGameProcessName(
   const char *name
 ) {
+  gGameProcessName = HTiUtf8ToWstring(name);
+
+  return 1;
+}
+
+int HTiSetGameProcessName(
+  const wchar_t *name
+) {
   gGameProcessName = name;
+
   return 1;
 }
 
 int HTiBackendExpectProcess() {
   int success = 0;
 
-  // Setup all game backends.
-#ifdef USE_IMPL_SKY
-  // Expect Sky.exe
-  extern int HTi_ImplSky_ExpectProcess();
-  success |= HTi_ImplSky_ExpectProcess();
-#endif
-#ifdef USE_IMPL_MCBE
-  // Expect Minecraft.Windows.exe
-  extern int HTi_ImplMCBE_ExpectProcess();
-  success |= HTi_ImplMCBE_ExpectProcess();
-#endif
+  for (const HTiBackendRegister *p = HTiBackendRegister::list(); p; p = p->prev)
+    if (p->fnExpectProcess)
+      success |= p->fnExpectProcess();
 
   return success;
 }
@@ -104,29 +106,9 @@ int HTiBackendSetupAll() {
 
   InitializeCriticalSection(&gGraphicInitMutex);
 
-  // Setup all graphic backends.
-#ifdef USE_IMPL_VKLAYER
-  // Setup vulkan layer.
-  extern int HTi_ImplVkLayer_Init();
-  success |= HTi_ImplVkLayer_Init();
-#endif
-#ifdef USE_IMPL_OPENGL3
-  // Setup OpenGL3.
-  extern int HTi_ImplOpenGL3_Init();
-  success |= HTi_ImplOpenGL3_Init();
-#endif
-
-  // Setup all game backends.
-#ifdef USE_IMPL_SKY
-  // Setup Sky:CotL.
-  extern int HTi_ImplSky_Init();
-  success |= HTi_ImplSky_Init();
-#endif
-#ifdef USE_IMPL_MCBE
-  // Setup Minecraft:Bedrock.
-  extern int HTi_ImplMCBE_Init();
-  success |= HTi_ImplMCBE_Init();
-#endif
+  for (const HTiBackendRegister *p = HTiBackendRegister::list(); p; p = p->prev)
+    if (p->fnInit)
+      success |= p->fnInit();
 
   return success;
 }

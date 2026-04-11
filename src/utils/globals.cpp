@@ -3,7 +3,7 @@
 // variables directly, use HTML APIs to get a copy of them instead.
 // ----------------------------------------------------------------------------
 #include <windows.h>
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 // Game basic informations.
 HTGameStatus gGameStatus = {0};

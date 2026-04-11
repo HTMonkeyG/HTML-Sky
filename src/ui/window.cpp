@@ -2,7 +2,7 @@
 #include "imgui.h"
 
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 void HTiWindowMain(bool *show) {
   // Resize window on the first frame.
@@ -39,16 +39,16 @@ void HTiWindowMain(bool *show) {
 }
 
 void HTiWindowDebugger(bool *show) {
+#ifdef HTML_ENABLE_DEBUGGER
   if (!ImGui::Begin("HTML Debugger", show))
     return (void)ImGui::End();
 
   ImGui::PushID("HTMLWindowDebugger");
 
-  if (ImGui::CollapsingHeader("Hooks")) {
-
-  }
+  HTiRenderDebugger();
 
   ImGui::PopID();
 
   ImGui::End();
+#endif
 }

@@ -2,58 +2,38 @@
 // Assembly patch and hook APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
 #include <windows.h>
+#include <mutex>
+#include <shared_mutex>
 #include "MinHook.h"
 
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
-// Contexts of a patch.
-struct ModPatch {
-  // Begin address of the patch.
-  void *addr;
-  // Original data of the patch.
-  std::vector<u08> original;
-  // Patch data to be set.
-  std::vector<u08> patched;
-  // Owner of this patch.
-  HMODULE owner;
-};
-
-// Contexts of a hook.
-struct ModHook {
-  // Address of the function intended to be detoured.
-  PFN_HTVoidFunction intent;
-  // Address of the actually hooked function due to the hook chain.
-  PFN_HTVoidFunction actual;
-  // Address of the detour function.
-  PFN_HTVoidFunction detour;
-  // Trampoline function to be called.
-  PFN_HTVoidFunction trampoline;
-  // The binary data of the leading JMP instructions.
-  ModPatch *header;
-  // Hook chain datas.
-  HMODULE owner;
-  ModHook *next;
-  ModHook *prev;
-  // Debug only.
-  std::string name;
-};
-
-static std::mutex gMutex;
+static HTMutexShared gMutexAsm;
 static std::map<void *, ModPatch> gPatches;
 static std::map<void *, ModHook> gHooks;
 
-static bool isExecutableAddr(void *) {
-  return true;
+std::vector<ModHook *> HTiAsmHookFindFor(
+  HMODULE owner
+) {
+  HTLockReadable lock{gMutexAsm};
+  std::vector<ModHook *> result;
+
+  for (auto &it: gHooks) {
+    if (it.second.owner == owner)
+      result.push_back(&it.second);
+  }
+
+  return result;
 }
 
-HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
+static HTStatus createHook(
   HMODULE hModuleOwner,
-  LPVOID fn,
-  LPVOID detour,
-  LPVOID *origin
+  const std::string &name,
+  void *fn,
+  void *detour,
+  void **origin
 ) {
-  std::lock_guard<std::mutex> lock(gMutex);
   ModHook hook;
   MH_STATUS s;
 
@@ -62,7 +42,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
   if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
     return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
-  if (!isExecutableAddr(fn) || !isExecutableAddr(detour))
+  if (!HTiIsExecutableAddr(fn) || !HTiIsExecutableAddr(detour))
     // Not executable address.
     return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
 
@@ -73,7 +53,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
   hook.intent = hook.actual = (PFN_HTVoidFunction)fn;
   hook.detour = (PFN_HTVoidFunction)detour;
   hook.owner = hModuleOwner;
-  hook.name = "";
+  hook.name = name;
+  hook.isEnabled = false;
 
   s = MH_CreateHook(
     (void *)hook.actual,
@@ -82,13 +63,29 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
 
   if (s != MH_OK)
     return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
-  
+
   if (origin)
     *origin = (void *)hook.trampoline;
 
   gHooks[(void *)hook.intent] = hook;
 
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
+}
+
+HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
+  HMODULE hModuleOwner,
+  LPVOID fn,
+  LPVOID detour,
+  LPVOID *origin
+) {
+  HTLockShared lock{gMutexAsm};
+
+  return createHook(
+    hModuleOwner,
+    "<Raw>",
+    fn,
+    detour,
+    origin);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateAPI(
@@ -99,13 +96,12 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateAPI(
   LPVOID *origin,
   LPVOID *target
 ) {
+  HTLockShared lock{gMutexAsm};
   HTStatus s;
-  HTAsmFunction f;
+  LPVOID origin_;
   
-  if (!module || !hModuleOwner || !function)
+  if (!module || !function)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
-    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
   // Get target module.
   HMODULE hTarget = GetModuleHandleW(module);
@@ -117,17 +113,18 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateAPI(
   if (!targetFn)
     return HTiErrAndRet(HTError_NotFound, HT_FAIL);
 
-  f.fn = targetFn;
-  f.detour = detour;
-  f.name = function;
-
-  s = HTAsmHookCreate(hModuleOwner, &f);
+  s = createHook(
+    hModuleOwner,
+    HTiWstringToUtf8(module) + ":" + function,
+    targetFn,
+    detour,
+    &origin_);
   if (s != HT_SUCCESS)
     // We directly pass the error code to the caller.
     return s;
-  
+
   if (origin)
-    *origin = f.origin;
+    *origin = origin_;
   if (target)
     *target = targetFn;
 
@@ -138,40 +135,17 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreate(
   HMODULE hModuleOwner,
   HTAsmFunction *func
 ) {
-  std::lock_guard<std::mutex> lock(gMutex);
-  ModHook hook;
-  MH_STATUS s;
+  HTLockShared lock{gMutexAsm};
 
-  if (!hModuleOwner || !func)
+  if (!func)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
-    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
-  if (!isExecutableAddr(func->fn))
-    // Not executable address.
-    return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
-
-  if (gHooks.find(func->fn) != gHooks.end())
-    // Already hooked.
-    return HTiErrAndRet(HTError_AlreadyExists, HT_FAIL);
-
-  hook.intent = hook.actual = (PFN_HTVoidFunction)func->fn;
-  hook.detour = (PFN_HTVoidFunction)func->detour;
-  hook.owner = hModuleOwner;
-  hook.name = func->name;
-
-  s = MH_CreateHook(
-    (void *)hook.actual,
-    (void *)hook.detour,
-    (void **)&hook.trampoline);
-  func->origin = (void *)hook.trampoline;
-
-  if (s != MH_OK)
-    return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
-
-  gHooks[(void *)hook.intent] = hook;
-
-  return HTiErrAndRet(HTError_Success, HT_SUCCESS);
+  return createHook(
+    hModuleOwner,
+    func->name ? func->name : "<Unknown>",
+    func->fn,
+    func->detour,
+    &func->origin);
 }
 
 static HTStatus enableHook(
@@ -179,7 +153,6 @@ static HTStatus enableHook(
   LPVOID fn,
   bool action
 ) {
-  std::lock_guard<std::mutex> lock(gMutex);
   MH_STATUS (*mh)(LPVOID)
     , s;
 
@@ -188,7 +161,8 @@ static HTStatus enableHook(
   if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
     return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
-  if (gHooks.find(fn) == gHooks.end())
+  auto hook = gHooks.find(fn);
+  if (hook == gHooks.end())
     // Not hooked.
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   
@@ -198,8 +172,12 @@ static HTStatus enableHook(
 
   if (fn != HT_ALL_HOOKS) {
     s = mh((LPVOID)fn);
+
     if (s != MH_OK)
       return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
+
+    hook->second.isEnabled = action;
+
     return HTiErrAndRet(HTError_Success, HT_SUCCESS);
   }
 
@@ -208,8 +186,11 @@ static HTStatus enableHook(
       continue;
 
     s = mh((LPVOID)it->second.actual);
+
     if (s != MH_OK)
       return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
+
+    it->second.isEnabled = action;
   }
 
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
@@ -219,6 +200,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookEnable(
   HMODULE hModuleOwner,
   LPVOID fn
 ) {
+  HTLockShared lock{gMutexAsm};
+
   return enableHook(hModuleOwner, fn, true);
 }
 
@@ -226,6 +209,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookDisable(
   HMODULE hModuleOwner,
   LPVOID fn
 ) {
+  HTLockShared lock{gMutexAsm};
+
   return enableHook(hModuleOwner, fn, false);
 }
 

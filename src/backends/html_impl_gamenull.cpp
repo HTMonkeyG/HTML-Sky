@@ -5,7 +5,7 @@
 // You may use this backend as a template.
 // ----------------------------------------------------------------------------
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htconfig.h"
 
 //#ifdef USE_IMPL_NULLGAME
@@ -68,5 +68,11 @@ int HTi_ImplGameNull_Init() {
 
   return 1;
 }
+
+const HTiBackendRegister g_register_ImplGameNull{
+  "GameNull",
+  HTi_ImplGameNull_Init,
+  HTi_ImplGameNull_ExpectProcess
+};
 
 #endif

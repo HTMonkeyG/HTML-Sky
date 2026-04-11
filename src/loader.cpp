@@ -2,11 +2,12 @@
 // Mod loader of HT's Mod Loader.
 // ----------------------------------------------------------------------------
 #include <cmath>
+#include <algorithm>
 #include "cJSON.h"
 
 #include "includes/htmodloader.h"
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static inline i32 parseVersionNumber(
   const char *str,
@@ -33,6 +34,48 @@ static inline i32 compareVersion(
 }
 
 /**
+ * Package name should only contains `a-z A-Z 0-9 _ . @ / -`.
+ */
+static inline bool validatePackageName(
+  const std::string &packageName
+) {
+  return std::all_of(
+    packageName.begin(),
+    packageName.end(),
+    [](char ch) -> bool {
+      return (ch >= 'a' && ch <= 'z')
+        || (ch >= 'A' && ch <= 'Z')
+        || (ch >= '0' && ch <= '9')
+        || ch == '.'
+        || ch == '-'
+        || ch == '_'
+        || ch == '@'
+        || ch == '/';
+    }
+  );
+}
+
+/**
+ * Dll must not be located out of `mods` folder.
+ */
+static inline bool validateDllPath(
+  const std::wstring &path
+) {
+  std::wstring rel = HTiPathRelative(
+    gPathModsWide,
+    path);
+
+  if (rel.empty())
+    return false;
+  if (HTiPathIsAbsolute(rel))
+    return false;
+  if (rel.size() > 2 && rel[0] == L'.' && rel[1] == L'.')
+    return false;
+
+  return true;
+}
+
+/**
  * Helper function for get string value with cJSON.
  */
 static inline std::string getStringValueFrom(
@@ -40,9 +83,7 @@ static inline std::string getStringValueFrom(
   const char *key
 ) {
   char *s = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, key));
-  if (!s)
-    return std::string();
-  return std::string(s);
+  return s ? s : "";
 }
 
 /**
@@ -52,37 +93,71 @@ static i32 deserializeManifestJson(
   const char *buffer,
   ModManifest *manifest
 ) {
+  const wchar_t *manifestPath = manifest->paths.json.c_str();
   i32 ret = 0;
   cJSON *json;
   char *parsedStr = nullptr;
   std::string version;
+  std::wstring dllPathOrigin;
   double editionFlag;
-  
-  json = cJSON_Parse(buffer);
-  if (!json)
-    goto RET;
 
-  // Get dll path.
-  parsedStr = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, "main"));
-  if (!parsedStr)
-    goto RET;
-  manifest->paths.dll = manifest->paths.folder + L"\\" + HTiUtf8ToWstring(parsedStr);
+  (void)manifestPath;
+
+  json = cJSON_Parse(buffer);
+  if (!json) {
+    LOGW("Invalid manifest.json of: %ls\n", manifestPath);
+    goto Err;
+  }
 
   // Get package name.
   manifest->meta.packageName = getStringValueFrom(json, "package_name");
-  if (manifest->meta.packageName.empty())
-    goto RET;
-  
+  if (
+    manifest->meta.packageName.empty()
+    || !validatePackageName(manifest->meta.packageName)
+  ) {
+    LOGW(
+      "Invalid package name \"%s\" in: %ls\n",
+      manifest->meta.packageName.c_str(),
+      manifestPath);
+    goto Err;
+  }
+
+  // Get dll path from manifest.
+  parsedStr = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, "main"));
+  if (!parsedStr) {
+    LOGW("Missing dll path of: %ls\n", manifestPath);
+    goto Err;
+  }
+
+  // Dll path must not be a relative path.
+  dllPathOrigin = HTiUtf8ToWstring(parsedStr);
+  if (HTiPathIsAbsolute(dllPathOrigin))
+    goto InvalidDllPath;
+
+  // Dll must be located in `mods/` folder.
+  manifest->paths.dll = HTiPathJoin({
+    manifest->paths.folder,
+    dllPathOrigin});
+  if (!validateDllPath(manifest->paths.dll)) {
+InvalidDllPath:
+    LOGW("Invalid dll path of: %ls\n", manifestPath);
+    goto Err;
+  }
+
   // Get mod version.
   version = getStringValueFrom(json, "version");
-  if (!parseVersionNumber(version.data(), manifest->meta.version))
-    goto RET;
-  
+  if (!parseVersionNumber(version.data(), manifest->meta.version)) {
+    LOGW("Invalid mod version of: %ls\n", manifestPath);
+    goto Err;
+  }
+
   // Get compatible game edition of the mod.
   editionFlag = cJSON_GetNumberValue(cJSON_GetObjectItemCaseSensitive(json, "game_edition"));
-  if (std::isnan(editionFlag))
+  if (std::isnan(editionFlag)) {
     // Invalid game edition.
-    goto RET;
+    LOGW("Invalid game edition of: %ls\n", manifestPath);
+    goto Err;
+  }
   manifest->gameEditionFlags = (i32)editionFlag;
 
   // Get display info.
@@ -91,7 +166,8 @@ static i32 deserializeManifestJson(
   manifest->author = getStringValueFrom(json, "author");
 
   ret = 1;
-RET:
+
+Err:
   cJSON_Delete(json);
   return ret;
 }
@@ -108,11 +184,10 @@ static i32 parseModManifest(
   std::wstring folder(gPathModsWide);
 
   // Get the mod folder.
-  folder += L"\\";
-  folder += fileName;
+  folder = HTiPathJoin({folder, fileName});
 
   // Check the manifest.json.
-  std::wstring jsonPath = folder + L"\\manifest.json";
+  std::wstring jsonPath = HTiPathJoin({folder, L"\\manifest.json"});
   if (!HTiFileExists(jsonPath.data()))
     return 0;
 
@@ -153,7 +228,7 @@ static void scanMods() {
     if (!wcscmp(findData.cFileName, L".") || !wcscmp(findData.cFileName, L".."))
       continue;
 
-    LOGI("Found potential mod folder: %s\n", findData.cFileName);
+    LOGI("Found potential mod folder: %ls\n", findData.cFileName);
 
     if (!parseModManifest(findData.cFileName, &manifest))
       continue;
@@ -201,24 +276,43 @@ static void getModExportedFunctions(
 static void expandMods() {
   HMODULE hMod;
   ModRuntime *runtimeData;
+  std::wstring oldPath;
 
   for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); it++) {
-    const char *modName = it->second.modName.data();
+    const char *modName = it->second.modName.c_str();
+
+    (void)modName;
 
     if (it->second.meta.packageName == HTTexts_ModLoaderPackageName)
       // The data of mod loader itself is set in bootstrap(), so we don't need
       // to load it again.
       continue;
 
+    // Save previous dll directory.
+    u32 needed = GetDllDirectoryW(0, nullptr);
+    if (needed) {
+      oldPath.resize(needed + 1);
+      GetDllDirectoryW(needed + 1, oldPath.data());
+    }
+
+    // Set new dll searching directory.
+    SetDllDirectoryW(it->second.paths.folder.c_str());
+
     // Load library.
-    hMod = LoadLibraryW(it->second.paths.dll.data());
+    hMod = LoadLibraryW(it->second.paths.dll.c_str());
     if (hMod)
       LOGI("Loaded mod %s.\n", modName);
     else
-      LOGI("Load mod %s failed: No such file.\n", modName);
+      LOGW("Load mod %s failed: No such file.\n", modName);
+
+    // Restore saved dll searching directory.
+    if (needed)
+      SetDllDirectoryW(oldPath.c_str());
+    else
+      SetDllDirectoryW(nullptr);
 
     // Save runtime data.
-    {
+    if (hMod) {
       // While the mods are loading one by one, subthreads created by the mods
       // may access mod data structs at the same time, so we need a global
       // lock.
@@ -245,6 +339,8 @@ void initMods() {
 
   for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
     const char *modName = it->second.manifest->modName.c_str();
+    (void)modName;
+
     fn = it->second.loaderFunc.pfn_HTModOnInit;
 
     // We assume that mod that does not export HTModOnInit() has an independent
@@ -253,7 +349,7 @@ void initMods() {
     if (!fn || fn(nullptr) == HT_SUCCESS)
       LOGI("Initialized mod %s.\n", modName);
     else
-      LOGI("Failed to initialize mod %s.\n", modName);
+      LOGW("Failed to initialize mod %s.\n", modName);
   }
 }
 
@@ -271,12 +367,14 @@ HTStatus HTiEnableMods() {
 
   for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
     const char *modName = it->second.manifest->modName.c_str();
+    (void)modName;
+
     fn = it->second.loaderFunc.pfn_HTModOnEnable;
 
     if (!fn || fn(nullptr) == HT_SUCCESS)
       LOGI("Enabled mod %s.\n", modName);
     else
-      LOGI("Failed to enable mod %s.\n", modName);
+      LOGW("Failed to enable mod %s.\n", modName);
   }
 
   return HT_SUCCESS;

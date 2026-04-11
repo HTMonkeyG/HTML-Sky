@@ -1,6 +1,6 @@
 #include <mutex>
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static std::mutex gGameStatusMutex;
 
@@ -16,7 +16,7 @@ void HTiSetGameStatus(
   gGameStatus = *status;
 
   LOGI("Game info: \n");
-  LOGI("  pid = 0x%lu\n", gGameStatus.pid);
+  LOGI("  pid = %lu\n", gGameStatus.pid);
   LOGI("  baseAddr = 0x%p\n", gGameStatus.baseAddr);
 }
 
