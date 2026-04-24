@@ -39,6 +39,8 @@ int HTiBackendGLLeaveCritical() {
 
 int HTiBackendGLInitComplete() {
   SetEvent(gEventGuiInit);
+  // Enable all mods.
+  HTiEnableMods();
   return 1;
 }
 

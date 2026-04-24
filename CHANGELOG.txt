@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Changed mod enabling to single-threaded.
 - Added HTAssert APIs.
 - Changed description of header sections.
 - Changed the description of `HTPathRelative`.
