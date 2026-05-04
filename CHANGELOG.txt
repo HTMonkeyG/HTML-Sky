@@ -5,6 +5,7 @@ This file contains the changelog of HTModLoader.
  Version 1.11.0 WIP
 -------------------------------------------------------------------------------
 
+- Fix the issue where the HTPath API does not ignore maxLen when buffer is NULL.
 
 
 -------------------------------------------------------------------------------
