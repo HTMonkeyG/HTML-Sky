@@ -11,7 +11,7 @@ HTMLAPIATTR VOID HTMLAPI HTAssertImpl(
   snprintf(
     buf,
     sizeof(buf),
-    "File: %s, Line: %d\nExpression: %s",
+    "File: %s\n Line: %d\nExpression: %s",
     file,
     line,
     expression);
@@ -47,7 +47,7 @@ HTMLAPIATTR VOID HTMLAPI HTAssertMsgImpl(
   snprintf(
     buf1,
     sizeof(buf1),
-    "%s\nFile: %s, Line: %d\nExpression: %s",
+    "%s\nFile: %s\n Line: %d\nExpression: %s",
     buf2,
     file,
     line,
