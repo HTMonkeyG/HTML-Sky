@@ -291,7 +291,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathNormalize(
  */
 HTMLAPIATTR UINT32 HTMLAPI HTPathJoin(
   LPWSTR result,
-  LPCWSTR *paths,
+  const LPCWSTR *paths,
   UINT32 maxLen);
 
 /**
@@ -299,7 +299,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathJoin(
  */
 HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
   LPWSTR result,
-  LPCWSTR *paths,
+  const LPCWSTR *paths,
   UINT32 maxLen);
 
 /**
