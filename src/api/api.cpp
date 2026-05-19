@@ -278,10 +278,10 @@ static u32 copyOrReturn(
   const std::wstring &str,
   u32 maxLen
 ) {
-  if (str.size() >= maxLen)
-    return 0;
   if (!buffer)
     return str.size() + 1;
+  if (str.size() >= maxLen)
+    return 0;
 
   wcsncpy(buffer, str.c_str(), maxLen - 1);
   buffer[maxLen - 1] = 0;

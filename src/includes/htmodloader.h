@@ -38,8 +38,8 @@
 // Mod loader version.
 // Version number is used for pre-processing statements handling version
 // compatibility.
-#define HTML_VERSION 10901
-#define HTML_VERSION_NAME "1.10.0 WIP"
+#define HTML_VERSION 11002
+#define HTML_VERSION_NAME "1.11.0 WIP"
 
 #define HTMLAPI __stdcall
 #ifndef HTMLAPIATTR
@@ -291,7 +291,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathNormalize(
  */
 HTMLAPIATTR UINT32 HTMLAPI HTPathJoin(
   LPWSTR result,
-  LPCWSTR *paths,
+  const LPCWSTR *paths,
   UINT32 maxLen);
 
 /**
@@ -299,7 +299,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathJoin(
  */
 HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
   LPWSTR result,
-  LPCWSTR *paths,
+  const LPCWSTR *paths,
   UINT32 maxLen);
 
 /**

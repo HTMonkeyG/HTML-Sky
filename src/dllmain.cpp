@@ -77,11 +77,6 @@ static DWORD WINAPI onAttach(
 
   (void)hModule;
 
-  // Create an independent heap.
-  gHeap = HeapCreate(0, 0, 0);
-  gEventGuiInit = CreateEventA(nullptr, 0, 0, nullptr);
-  HTiInitLDB();
-
   // Enable mods after the menu is created.
   if (WaitForSingleObject(gEventGuiInit, 30000) == WAIT_TIMEOUT) {
     // The most annoying error message of hSC Plugin LOL :P
@@ -89,8 +84,6 @@ static DWORD WINAPI onAttach(
     LOGEF("Gui init timed out after 30 seconds.\n");
     return 0;
   }
-
-  HTiEnableMods();
 
   return 0;
 }
@@ -122,6 +115,11 @@ BOOL APIENTRY DllMain(
     MH_Initialize();
 
     HTiBackendSetupAll();
+
+    // Create an independent heap.
+    gHeap = HeapCreate(0, 0, 0);
+    gEventGuiInit = CreateEventA(nullptr, 0, 0, nullptr);
+    HTiInitLDB();
 
     CreateThread(
       nullptr, 0, onAttach, (LPVOID)hModule, 0, nullptr);

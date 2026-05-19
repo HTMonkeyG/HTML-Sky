@@ -2,8 +2,29 @@ This file contains the changelog of HTModLoader.
 
 
 -------------------------------------------------------------------------------
- Version 1.10.0 WIP
+ Version 1.11.0 WIP
 -------------------------------------------------------------------------------
+
+Changes:
+- Added const modifiers for HTPath APIs.
+
+-------------------------------------------------------------------------------
+ Version 1.10.1 (2026.05.04)
+-------------------------------------------------------------------------------
+
+Changes:
+- Modified the assertion failure prompt.
+- Fix the issue where the HTPath API does not ignore maxLen when buffer is NULL.
+
+
+-------------------------------------------------------------------------------
+ Version 1.10.0 (2026.04.24)
+-------------------------------------------------------------------------------
+
+Breaking Changes:
+- Changed mod enabling to single-threaded.
+- Refactored ModManifest with the latest SemVer.
+- Added npm-like SemVer support.
 
 Changes:
 - Added HTAssert APIs.
@@ -12,15 +33,13 @@ Changes:
 - Fixed incorrect mouse events.
 - Fixed the issue where getting the mod directory actually returned the mod name.
 - Fixed an error when parsing version wildcards (by AI).
-- Refactored ModManifest with the latest SemVer.
-- Added npm-like SemVer support.
 - Renamed `htinternal.h` to `htinternal.hpp`.
 - Refactored backend register system.
 - Removed HTML_USE_IMPL_PROXY.
 
 
 -------------------------------------------------------------------------------
- Version 1.9.0
+ Version 1.9.0 (2025.12.03)
 -------------------------------------------------------------------------------
 
 Breaking Changes:
@@ -41,7 +60,7 @@ Changes:
 
 
 -------------------------------------------------------------------------------
- Version 1.8.2
+ Version 1.8.2 (2025.12.09)
 -------------------------------------------------------------------------------
 
 Changes:
@@ -57,7 +76,7 @@ Changes:
 
 
 -------------------------------------------------------------------------------
- Version 1.8.1
+ Version 1.8.1 (2025.11.13)
 -------------------------------------------------------------------------------
 
 Changes:
@@ -65,7 +84,7 @@ Changes:
 
 
 -------------------------------------------------------------------------------
- Version 1.8.0
+ Version 1.8.0 (2025.11.13)
 -------------------------------------------------------------------------------
 
 Breaking Changes:
