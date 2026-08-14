@@ -6,7 +6,9 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Fixed conflicting declarations of HTPath functions.
 - Added const modifiers for HTPath APIs.
+
 
 -------------------------------------------------------------------------------
  Version 1.10.1 (2026.05.04)
