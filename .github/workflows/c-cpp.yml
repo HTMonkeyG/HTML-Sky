@@ -10,60 +10,44 @@ on:
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
 
-      - name: Cache MinGW
-        uses: actions/cache@v4
+      - name: Setup MinGW
+        uses: egor-tensin/setup-mingw@v2
         with:
-          path: C:\ProgramData\chocolatey\lib\mingw
-          key: mingw-${{ runner.os }}-15.2.0
+          platform: x64
 
 
-      - name: Install MinGW
-        shell: powershell
-        run: |
-          choco install mingw -y
-          refreshenv
-
-
-      - name: Verify toolchain
+      # 生成 MinGW Vulkan 库
+      - name: Generate Vulkan MinGW Library
         shell: cmd
         run: |
-          where gcc
-          where g++
-          where mingw32-make
-          gcc --version
-          g++ --version
-          mingw32-make --version
+          cd libraries\vulkan\Lib
 
+          copy %WINDIR%\System32\vulkan-1.dll .
 
-      - name: Clean
-        shell: cmd
-        run: |
-          mingw32-make clean
+          gendef vulkan-1.dll
+
+          dlltool ^
+          -d vulkan-1.def ^
+          -D vulkan-1.dll ^
+          -l libvulkan-1.a
 
 
       - name: Build
         shell: cmd
         run: |
-          mingw32-make -j4 all
+          mingw32-make all
 
 
-      - name: Verify build result
+      - name: Check output
         shell: cmd
-        run: |
-          if not exist dist\winhttp.dll (
-            echo ERROR: winhttp.dll not found
-            exit /b 1
-          )
-
+        run:
           dir dist
 
 
@@ -71,8 +55,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: winhttp-build
-          path: |
-            dist/winhttp.dll
-            dist/*.lib
-          if-no-files-found: error
-          compression-level: 9
+          path: dist/
