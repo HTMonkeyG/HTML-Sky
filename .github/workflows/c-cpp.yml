@@ -14,29 +14,65 @@ jobs:
     runs-on: windows-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
 
+      - name: Cache MinGW
+        uses: actions/cache@v4
+        with:
+          path: C:\ProgramData\chocolatey\lib\mingw
+          key: mingw-${{ runner.os }}-15.2.0
+
+
       - name: Install MinGW
+        shell: powershell
         run: |
           choco install mingw -y
           refreshenv
 
 
-      - name: Verify
+      - name: Verify toolchain
+        shell: cmd
         run: |
+          where gcc
+          where g++
+          where mingw32-make
           gcc --version
           g++ --version
           mingw32-make --version
 
 
+      - name: Clean
+        shell: cmd
+        run: |
+          mingw32-make clean
+
+
       - name: Build
-        run: mingw32-make all
+        shell: cmd
+        run: |
+          mingw32-make -j4 all
+
+
+      - name: Verify build result
+        shell: cmd
+        run: |
+          if not exist dist\winhttp.dll (
+            echo ERROR: winhttp.dll not found
+            exit /b 1
+          )
+
+          dir dist
 
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: winhttp-build
-          path: dist/
+          path: |
+            dist/winhttp.dll
+            dist/*.lib
+          if-no-files-found: error
+          compression-level: 9
