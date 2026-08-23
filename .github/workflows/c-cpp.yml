@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -11,15 +12,20 @@ on:
 
 jobs:
   build:
+
     runs-on: windows-latest
+
 
     steps:
 
+      # 拉取代码
       - name: Checkout
         uses: actions/checkout@v4
 
 
-      - name: Setup MinGW
+
+      # 安装 MSYS2 + MinGW64
+      - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -28,8 +34,22 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-gcc-libs
             mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-make
 
 
+
+      # 检查编译环境
+      - name: Check toolchain
+        shell: msys2 {0}
+        run: |
+          gcc --version
+          g++ --version
+          mingw32-make --version
+          dlltool --version
+
+
+
+      # 生成 Vulkan MinGW import library
       - name: Generate Vulkan library
         shell: msys2 {0}
         run: |
@@ -37,26 +57,38 @@ jobs:
 
           cp /c/Windows/System32/vulkan-1.dll .
 
+          echo Generating DEF...
+
           gendef vulkan-1.dll
+
+          echo Creating MinGW library...
 
           dlltool \
             -d vulkan-1.def \
             -D vulkan-1.dll \
             -l libvulkan-1.a
 
+          ls -lh
 
+
+
+      # 编译依赖库 + DLL
       - name: Build
         shell: msys2 {0}
         run: |
           mingw32-make all
 
 
+
+      # 查看输出
       - name: Check output
         shell: cmd
         run: |
           dir dist
 
 
+
+      # 上传 DLL
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
