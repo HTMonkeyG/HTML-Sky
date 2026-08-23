@@ -8,46 +8,52 @@ on:
     branches:
       - main
 
+
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
 
       - name: Setup MinGW
-        uses: egor-tensin/setup-mingw@v2
+        uses: msys2/setup-msys2@v2
         with:
-          platform: x64
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-libs
+            mingw-w64-x86_64-binutils
 
 
-      # 生成 MinGW Vulkan 库
-      - name: Generate Vulkan MinGW Library
-        shell: cmd
+      - name: Generate Vulkan library
+        shell: msys2 {0}
         run: |
-          cd libraries\vulkan\Lib
+          cd libraries/vulkan/Lib
 
-          copy %WINDIR%\System32\vulkan-1.dll .
+          cp /c/Windows/System32/vulkan-1.dll .
 
           gendef vulkan-1.dll
 
-          dlltool ^
-          -d vulkan-1.def ^
-          -D vulkan-1.dll ^
-          -l libvulkan-1.a
+          dlltool \
+            -d vulkan-1.def \
+            -D vulkan-1.dll \
+            -l libvulkan-1.a
 
 
       - name: Build
-        shell: cmd
+        shell: msys2 {0}
         run: |
           mingw32-make all
 
 
       - name: Check output
         shell: cmd
-        run:
+        run: |
           dir dist
 
 
