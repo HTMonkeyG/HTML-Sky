@@ -1,0 +1,39 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+
+
+      - name: Build
+        run: mingw32-make all
+
+
+      - name: Check output
+        run: dir dist
+
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winhttp-build
+          path: dist/
