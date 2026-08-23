@@ -36,6 +36,7 @@ void HTiInitGUI() {
   ImGuiStyle &style = ImGui::GetStyle();
   io.IniFilename = gPathGuiIni;
   io.LogFilename = nullptr;
+  io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
   // Scale the window by dpi.
   f32 dpiScale = ImGui_ImplWin32_GetDpiScaleForHwnd(gGameStatus.window);

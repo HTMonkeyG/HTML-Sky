@@ -11,9 +11,89 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 
 // Original window process of the game.
 static WNDPROC gWndProcOrigin = nullptr;
+static int gMouseTrackedArea = 0;
 
 static bool isVkDown(int vk) {
   return (GetKeyState(vk) & 0x8000) != 0;
+}
+
+static void HTImGuiMouseWndProc(
+  HWND hWnd,
+  UINT uMsg,
+  WPARAM wParam,
+  LPARAM lParam
+) {
+  if (!ImGui::GetCurrentContext())
+    return;
+
+  ImGuiIO &io = ImGui::GetIO();
+  switch (uMsg) {
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE: {
+      const int area = (uMsg == WM_MOUSEMOVE) ? 1 : 2;
+      if (gMouseTrackedArea != area) {
+        TRACKMOUSEEVENT tme_cancel = { sizeof(tme_cancel), TME_CANCEL, hWnd, 0 };
+        TRACKMOUSEEVENT tme_track = {
+          sizeof(tme_track),
+          (DWORD)((area == 2) ? (TME_LEAVE | TME_NONCLIENT) : TME_LEAVE),
+          hWnd,
+          0
+        };
+        if (gMouseTrackedArea != 0)
+          (void)TrackMouseEvent(&tme_cancel);
+        (void)TrackMouseEvent(&tme_track);
+        gMouseTrackedArea = area;
+      }
+
+      POINT mousePos = {
+        (LONG)(short)LOWORD(lParam),
+        (LONG)(short)HIWORD(lParam)
+      };
+      if (uMsg == WM_NCMOUSEMOVE && !ScreenToClient(hWnd, &mousePos))
+        return;
+      io.AddMousePosEvent((float)mousePos.x, (float)mousePos.y);
+      break;
+    }
+    case WM_MOUSELEAVE:
+    case WM_NCMOUSELEAVE:
+      gMouseTrackedArea = 0;
+      io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+      break;
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+      io.AddMouseButtonEvent(0, true);
+      break;
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONDBLCLK:
+      io.AddMouseButtonEvent(1, true);
+      break;
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONDBLCLK:
+      io.AddMouseButtonEvent(2, true);
+      break;
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONDBLCLK:
+      io.AddMouseButtonEvent((GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? 3 : 4, true);
+      break;
+    case WM_LBUTTONUP:
+      io.AddMouseButtonEvent(0, false);
+      break;
+    case WM_RBUTTONUP:
+      io.AddMouseButtonEvent(1, false);
+      break;
+    case WM_MBUTTONUP:
+      io.AddMouseButtonEvent(2, false);
+      break;
+    case WM_XBUTTONUP:
+      io.AddMouseButtonEvent((GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? 3 : 4, false);
+      break;
+    case WM_MOUSEWHEEL:
+      io.AddMouseWheelEvent(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+      break;
+    case WM_MOUSEHWHEEL:
+      io.AddMouseWheelEvent(-(float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA, 0.0f);
+      break;
+  }
 }
 
 /**
@@ -279,22 +359,56 @@ static LRESULT APIENTRY HTWndProc(
   u08 block = 0;
   ImGuiIO &io = ImGui::GetIO();
 
-  // Dispatch the window message to ImGui.
-  (void)ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+  switch (uMsg) {
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE:
+    case WM_MOUSELEAVE:
+    case WM_NCMOUSELEAVE:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONDBLCLK:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONDBLCLK:
+    case WM_MBUTTONUP:
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONDBLCLK:
+    case WM_XBUTTONUP:
+    case WM_MOUSEWHEEL:
+    case WM_MOUSEHWHEEL:
+      HTImGuiMouseWndProc(hWnd, uMsg, wParam, lParam);
+      break;
+    default:
+      // Keep keyboard/text/focus handling on imgui_impl_win32, but avoid
+      // giving it ownership of mouse processing on a window already using ImGui.
+      (void)ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+      break;
+  }
 
   // Block the message. We only check for the key down message, in order to
   // avoid strange behaviors e.g. continuely moving characters.
   switch (uMsg) {
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE:
+    case WM_MOUSELEAVE:
+    case WM_NCMOUSELEAVE:
     case WM_LBUTTONDOWN:
     case WM_LBUTTONDBLCLK:
+    case WM_LBUTTONUP:
     case WM_RBUTTONDOWN:
     case WM_RBUTTONDBLCLK:
+    case WM_RBUTTONUP:
     case WM_MBUTTONDOWN:
     case WM_MBUTTONDBLCLK:
+    case WM_MBUTTONUP:
     case WM_XBUTTONDOWN:
     case WM_XBUTTONDBLCLK:
+    case WM_XBUTTONUP:
     case WM_MOUSEHWHEEL:
     case WM_MOUSEWHEEL:
+    case WM_SETCURSOR:
       block = io.WantCaptureMouse;
       break;
     case WM_SYSKEYDOWN:
