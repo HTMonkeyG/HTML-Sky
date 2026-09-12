@@ -8,6 +8,7 @@
 #include "htinternal.hpp"
 
 HTHandle hKeyMenuToggle = nullptr;
+static HTHandle hKeyReleaseInput = nullptr;
 
 static HTiSemVer getSelfVersion() {
   i32 major = HTML_VERSION / 10000
@@ -20,13 +21,23 @@ static HTStatus HTMLAPI modOnInit(
   void *
 ) {
   //HTCommRegFunction(gModLoaderHandle, "HT");
-  hKeyMenuToggle = HTHotkeyRegister(
+  hKeyMenuToggle = HTHotkeyRegisterEx(
     gModLoaderHandle,
     "Toggle menu display",
-    HTKey_GraveAccent);
+    HTKey_GraveAccent,
+    HTHotkeyFlags_NoBlock);
   HTHotkeyListen(
     hKeyMenuToggle,
     HTiToggleMenuState);
+
+  hKeyReleaseInput = HTHotkeyRegisterEx(
+    gModLoaderHandle,
+    "Release mouse and ImGui focus",
+    HTKey_LeftAlt,
+    HTHotkeyFlags_NoBlock);
+  HTHotkeyListen(
+    hKeyReleaseInput,
+    HTiReleaseInputCapture);
   return HT_SUCCESS;
 }
 

@@ -78,7 +78,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateRaw(
   LPVOID detour,
   LPVOID *origin
 ) {
-  HTLockShared lock{gMutexAsm};
+  std::unique_lock<HTMutexShared> lock{gMutexAsm};
 
   return createHook(
     hModuleOwner,
@@ -96,7 +96,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreateAPI(
   LPVOID *origin,
   LPVOID *target
 ) {
-  HTLockShared lock{gMutexAsm};
+  std::unique_lock<HTMutexShared> lock{gMutexAsm};
   HTStatus s;
   LPVOID origin_;
   
@@ -135,7 +135,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookCreate(
   HMODULE hModuleOwner,
   HTAsmFunction *func
 ) {
-  HTLockShared lock{gMutexAsm};
+  std::unique_lock<HTMutexShared> lock{gMutexAsm};
 
   if (!func)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
@@ -161,16 +161,15 @@ static HTStatus enableHook(
   if (!HTiCheckHandleType(hModuleOwner, HTHandleType_Mod))
     return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
 
-  auto hook = gHooks.find(fn);
-  if (hook == gHooks.end())
-    // Not hooked.
-    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  
   mh = action
     ? MH_EnableHook
     : MH_DisableHook;
 
   if (fn != HT_ALL_HOOKS) {
+    auto hook = gHooks.find(fn);
+    if (hook == gHooks.end())
+      return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+
     s = mh((LPVOID)fn);
 
     if (s != MH_OK)
@@ -200,7 +199,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookEnable(
   HMODULE hModuleOwner,
   LPVOID fn
 ) {
-  HTLockShared lock{gMutexAsm};
+  std::unique_lock<HTMutexShared> lock{gMutexAsm};
 
   return enableHook(hModuleOwner, fn, true);
 }
@@ -209,7 +208,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTAsmHookDisable(
   HMODULE hModuleOwner,
   LPVOID fn
 ) {
-  HTLockShared lock{gMutexAsm};
+  std::unique_lock<HTMutexShared> lock{gMutexAsm};
 
   return enableHook(hModuleOwner, fn, false);
 }

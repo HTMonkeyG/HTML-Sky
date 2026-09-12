@@ -35,8 +35,19 @@ i32 HTiInitLDB() {
 
   gWriteOptions = leveldb_writeoptions_create();
   gReadOptions = leveldb_readoptions_create();
-  if (!gWriteOptions || gReadOptions)
+  if (!gWriteOptions || !gReadOptions) {
+    if (gWriteOptions) {
+      leveldb_writeoptions_destroy(gWriteOptions);
+      gWriteOptions = nullptr;
+    }
+    if (gReadOptions) {
+      leveldb_readoptions_destroy(gReadOptions);
+      gReadOptions = nullptr;
+    }
+    leveldb_close(gLevelDB);
+    gLevelDB = nullptr;
     return 0;
+  }
 
   return 1;
 }
@@ -44,6 +55,15 @@ i32 HTiInitLDB() {
 i32 HTiDeinitLDB() {
   if (gLevelDB)
     leveldb_close(gLevelDB);
+
+  if (gWriteOptions)
+    leveldb_writeoptions_destroy(gWriteOptions);
+  if (gReadOptions)
+    leveldb_readoptions_destroy(gReadOptions);
+
+  gLevelDB = nullptr;
+  gWriteOptions = nullptr;
+  gReadOptions = nullptr;
 
   return 1;
 }
@@ -70,7 +90,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTDataStore(
   char *err = nullptr;
   ModRuntime *rt;
 
-  if (!hModule || !key || !keyLen || !value)
+  if (!hModule || !key || !keyLen || (!value && valueLen))
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   if (!gReadOptions || !gLevelDB)
     return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
@@ -150,6 +170,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTDataStoreStringKey(
   LPCSTR value,
   UINT64 valueLen
 ) {
+  if (!key)
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   return HTDataStore(hModule, key, strlen(key), value, valueLen);
 }
 
@@ -158,6 +180,8 @@ HTMLAPIATTR LPSTR HTMLAPI HTDataGetStringKey(
   LPCSTR key,
   UINT64 *valueLen
 ) {
+  if (!key)
+    return HTiErrAndRet(HTError_InvalidParam, nullptr);
   return HTDataGet(hModule, key, strlen(key), valueLen);
 }
 

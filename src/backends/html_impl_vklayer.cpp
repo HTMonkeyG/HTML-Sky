@@ -143,23 +143,31 @@ static char gPathLayerConfig[MAX_PATH] = {0};
 /**
  * Get associated dispatch table with given VkInstance object.
  */
-static InstanceDispatchTable *getInstanceDispatchTable(VkInstance instance) {
+static bool getInstanceDispatchTable(
+  VkInstance instance,
+  InstanceDispatchTable &result
+) {
   std::lock_guard<std::mutex> lock(gMutex);
   auto it = gInstanceTables.find(instance);
   if (it == gInstanceTables.end())
-    return nullptr;
-  return &it->second;
+    return false;
+  result = it->second;
+  return true;
 }
 
 /**
  * Get associated dispatch table with given VkDevice object.
  */
-static DeviceDispatchTable *getDeviceDispatchTable(VkDevice device) {
+static bool getDeviceDispatchTable(
+  VkDevice device,
+  DeviceDispatchTable &result
+) {
   std::lock_guard<std::mutex> lock(gMutex);
   auto it = gDeviceData.find(device);
   if (it == gDeviceData.end())
-    return nullptr;
-  return &it->second.deviceTable;
+    return false;
+  result = it->second.deviceTable;
+  return true;
 }
 
 /**
@@ -170,11 +178,19 @@ static DeviceData *getDeviceData(VkDevice device) {
   return &gDeviceData[device];
 }
 
+static DeviceData *getDeviceDataLocked(VkDevice device) {
+  return &gDeviceData[device];
+}
+
 /**
  * Get associated QueueData object with given VkQueue object.
  */
 static QueueData *getQueueData(VkQueue queue) {
   std::lock_guard<std::mutex> lock(gMutex);
+  return &gQueueData[queue];
+}
+
+static QueueData *getQueueDataLocked(VkQueue queue) {
   return &gQueueData[queue];
 }
 
@@ -187,7 +203,7 @@ static QueueData *createQueueData(
   VkQueue queue,
   DeviceData *deviceData
 ) {
-  QueueData *queueData = getQueueData(queue);
+  QueueData *queueData = getQueueDataLocked(queue);
   queueData->device = deviceData;
   queueData->queue = queue;
   deviceData->graphicQueue = queueData;
@@ -580,8 +596,11 @@ static VkResult renderGui(
     if (g->frames[0].Framebuffer == VK_NULL_HANDLE)
       createRenderTargetVk(g->device, swapchain);
 
-    // Wait indefinitely instead of periodically checking.
-    vkWaitForFences(g->device, 1, &f->Fence, VK_TRUE, UINT64_MAX);
+    // Never make the game's present thread wait indefinitely for the overlay.
+    // Under GPU pressure we skip this overlay frame and forward the original
+    // present, keeping input and game UI responsive.
+    if (vkWaitForFences(g->device, 1, &f->Fence, VK_TRUE, 0) != VK_SUCCESS)
+      return queueData->device->deviceTable.QueuePresentKHR(queue, pPresentInfo);
     vkResetFences(g->device, 1, &f->Fence);
 
     {
@@ -677,7 +696,8 @@ static VkResult renderGui(
         vkQueueSubmit(graphicQueue, 1, &info, f->Fence);
       }
     } else {
-      std::vector<VkPipelineStageFlags> waitStage(
+      static thread_local std::vector<VkPipelineStageFlags> waitStages;
+      waitStages.assign(
         waitSemaphoresCount,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
@@ -686,7 +706,7 @@ static VkResult renderGui(
       info.commandBufferCount = 1;
       info.pCommandBuffers = &f->CommandBuffer;
 
-      info.pWaitDstStageMask = waitStage.data();
+      info.pWaitDstStageMask = waitStages.data();
       info.waitSemaphoreCount = waitSemaphoresCount;
       info.pWaitSemaphores = pPresentInfo->pWaitSemaphores;
 
@@ -771,10 +791,10 @@ static VKAPI_ATTR void VKAPI_CALL HT_vkDestroyInstance(
   VkInstance instance,
   const VkAllocationCallbacks *pAllocator
 ) {
-  InstanceDispatchTable *table = getInstanceDispatchTable(instance);
+  InstanceDispatchTable table;
 
-  if (table && table->DestroyInstance)
-    table->DestroyInstance(instance, pAllocator);
+  if (getInstanceDispatchTable(instance, table) && table.DestroyInstance)
+    table.DestroyInstance(instance, pAllocator);
 
   std::lock_guard<std::mutex> lock(gMutex);
   gInstanceTables.erase(instance);
@@ -830,13 +850,16 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkCreateDevice(
 
   // Store the table and related VkQueue.
   std::lock_guard<std::mutex> lock(gMutex);
-  DeviceData *deviceData = getDeviceData(*pDevice);
+  DeviceData *deviceData = getDeviceDataLocked(*pDevice);
   deviceData->deviceTable = deviceTable;
   deviceData->device = *pDevice;
   VkLayerDeviceCreateInfo *loadDataInfo = (VkLayerDeviceCreateInfo *)getChainInfo(
     (VkLayerCreateInfo_ *)pCreateInfo,
     VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO,
     VK_LOADER_DATA_CALLBACK);
+
+  if (!loadDataInfo || !loadDataInfo->u.pfnSetDeviceLoaderData)
+    return VK_ERROR_INITIALIZATION_FAILED;
 
   deviceData->vkSetDeviceLoaderData = loadDataInfo->u.pfnSetDeviceLoaderData;
   setDeviceDataQueues(*pDevice, deviceData, pCreateInfo);
@@ -851,10 +874,10 @@ static VKAPI_ATTR void VKAPI_CALL HT_vkDestroyDevice(
   VkDevice device,
   const VkAllocationCallbacks *pAllocator
 ) {
-  DeviceDispatchTable *table = getDeviceDispatchTable(device);
+  DeviceDispatchTable table;
 
-  if (table && table->DestroyDevice)
-    table->DestroyDevice(device, pAllocator);
+  if (getDeviceDispatchTable(device, table) && table.DestroyDevice)
+    table.DestroyDevice(device, pAllocator);
 
   std::lock_guard<std::mutex> lock(gMutex);
   gDeviceData.erase(device);
@@ -871,7 +894,10 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkCreateSwapchainKHR(
 ) {
   destroyRenderTargetVk();
   gGuiStatus.imageExtent = pCreateInfo->imageExtent;
-  return getDeviceDispatchTable(device)->CreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+  DeviceDispatchTable table;
+  if (!getDeviceDispatchTable(device, table) || !table.CreateSwapchainKHR)
+    return VK_ERROR_INITIALIZATION_FAILED;
+  return table.CreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
 }
 
 /**
@@ -881,8 +907,17 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkQueuePresentKHR(
   VkQueue queue,
   const VkPresentInfoKHR *pPresentInfo
 ) {
-  if (!gGameStatus.window)
-    return getDeviceDispatchTable(getQueueData(queue)->device->device)->QueuePresentKHR(queue, pPresentInfo);
+  if (!queue || !pPresentInfo)
+    return VK_ERROR_INITIALIZATION_FAILED;
+  QueueData *queueData = getQueueData(queue);
+  DeviceDispatchTable queueTable;
+  if (!queueData || !queueData->device
+      || !getDeviceDispatchTable(queueData->device->device, queueTable)
+      || !queueTable.QueuePresentKHR)
+    return VK_ERROR_INITIALIZATION_FAILED;
+  if (!gGameStatus.window) {
+    return queueTable.QueuePresentKHR(queue, pPresentInfo);
+  }
   if (!gGuiStatus.isInited) {
     initVulkan();
     HTiInitGUI();
@@ -924,9 +959,9 @@ HTLAYER_ATTR VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL HT_vkGetInstanceProcAddr(
     return (PFN_vkVoidFunction)HT_vkDestroyDevice;
 
   if (instance) {
-    InstanceDispatchTable *table = getInstanceDispatchTable(instance);
-    if (table && table->GetInstanceProcAddr) {
-      return table->GetInstanceProcAddr(instance, pName);
+    InstanceDispatchTable table;
+    if (getInstanceDispatchTable(instance, table) && table.GetInstanceProcAddr) {
+      return table.GetInstanceProcAddr(instance, pName);
     }
   }
 
@@ -952,9 +987,9 @@ extern "C" VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL HT_vkGetDeviceProcAddr(
     return (PFN_vkVoidFunction)HT_vkQueuePresentKHR;
 
   if (device) {
-    DeviceDispatchTable *table = getDeviceDispatchTable(device);
-    if (table && table->GetDeviceProcAddr) {
-      return table->GetDeviceProcAddr(device, pName);
+    DeviceDispatchTable table;
+    if (getDeviceDispatchTable(device, table) && table.GetDeviceProcAddr) {
+      return table.GetDeviceProcAddr(device, pName);
     }
   }
 
@@ -990,10 +1025,10 @@ static i32 checkKeyName(HKEY key) {
       return 0;
 
     result = fn_NtQueryKey(key, 3, buffer, size, &size);
-    if (result == STATUS_SUCCESS)
+    if (result == STATUS_SUCCESS) {
       buffer[size / sizeof(wchar_t)] = 0;
-    
-    r = !wcscmp(buffer + 2, HTTexts_VulkanLayer);
+      r = !wcscmp(buffer + 2, HTTexts_VulkanLayer);
+    }
     free(buffer);
   }
 
@@ -1022,20 +1057,31 @@ static LONG WINAPI hook_RegEnumValueA(
   if (notSaved && !dwIndex) {
     // The handle isn't recorded and it's the first call on this key.
     if (checkKeyName(hKey)) {
-      // Set the current registry handle as access for Vulkan layer loader.
-      gRegKeys[hKey] = 1;
+      const size_t valueNameLen = strlen(gPathLayerConfig);
+      const DWORD dataLen = sizeof(i32);
+
+      if (!lpcchValueName || !lpcbData)
+        return ERROR_INVALID_PARAMETER;
+      if (!lpValueName || *lpcchValueName <= valueNameLen) {
+        *lpcchValueName = (DWORD)valueNameLen;
+        return ERROR_MORE_DATA;
+      }
+      if (!lpData || *lpcbData < dataLen) {
+        *lpcbData = dataLen;
+        return ERROR_MORE_DATA;
+      }
 
       // Inject the layer.
-      if (lpValueName)
-        strcpy(lpValueName, gPathLayerConfig);
-      if (lpcchValueName)
-        *lpcchValueName = strlen(gPathLayerConfig) + 1;
+      memcpy(lpValueName, gPathLayerConfig, valueNameLen + 1);
+      *lpcchValueName = (DWORD)valueNameLen;
       if (lpType)
         *lpType = REG_DWORD;
-      if (lpData)
-        *((i32 *)lpData) = 0;
-      if (lpcbData)
-        *lpcbData = 4;
+      *((i32 *)lpData) = 0;
+      *lpcbData = dataLen;
+
+      // Set the current registry handle as access for Vulkan layer loader only
+      // after the synthetic value was returned successfully.
+      gRegKeys[hKey] = 1;
 
       return ERROR_SUCCESS;
     } else
@@ -1069,8 +1115,13 @@ int HTi_ImplVkLayer_Init() {
 
   LOG("[ImplVklayer][INFO] HTi_ImplVkLayer_Init() called.\n");
 
-  strcpy(gPathLayerConfig, gPathDll);
-  strcat(gPathLayerConfig, "\\html-config.json");
+  int pathLen = snprintf(
+    gPathLayerConfig,
+    sizeof(gPathLayerConfig),
+    "%s\\html-config.json",
+    gPathDll);
+  if (pathLen < 0 || (size_t)pathLen >= sizeof(gPathLayerConfig))
+    return 0;
 
   std::wstring path = HTiUtf8ToWstring(gPathLayerConfig);
   if (!HTiFileExists(path.c_str())) {

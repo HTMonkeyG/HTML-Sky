@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------------
 #include <cmath>
 #include <algorithm>
+#include <atomic>
 #include "cJSON.h"
 
 #include "includes/htmodloader.h"
@@ -181,7 +182,7 @@ static void scanMods() {
 
   modsFolderPath += L"\\*";
   hFindFile = FindFirstFileW(modsFolderPath.data(), &findData);
-  if (!hFindFile)
+  if (hFindFile == INVALID_HANDLE_VALUE)
     return;
 
   do {
@@ -417,6 +418,10 @@ static void initMods(
 }
 
 HTStatus HTiLoadMods() {
+  static std::atomic<bool> loaded{false};
+  if (loaded.exchange(true))
+    return HTiErrAndRet(HTError_AlreadyExists, HT_FAIL);
+
   HTiBootstrap();
   scanMods();
   auto order = resolveMods();

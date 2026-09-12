@@ -4,147 +4,567 @@ typedef INT_PTR (*FARPROC)();
 typedef void *HMODULE;
 extern FARPROC GetProcAddress(HMODULE, const char *);
 
-static FARPROC pfn_WinHttpPacJsWorkerMain;
-static FARPROC pfn_WinHttpSetSecureLegacyServersAppCompat;
-static FARPROC pfn_DllCanUnloadNow;
-static FARPROC pfn_DllGetClassObject;
-static FARPROC pfn_Private1;
-static FARPROC pfn_SvchostPushServiceGlobals;
-static FARPROC pfn_WinHttpAddRequestHeaders;
-static FARPROC pfn_WinHttpAddRequestHeadersEx;
-static FARPROC pfn_WinHttpAutoProxySvcMain;
-static FARPROC pfn_WinHttpCheckPlatform;
-static FARPROC pfn_WinHttpCloseHandle;
-static FARPROC pfn_WinHttpConnect;
-static FARPROC pfn_WinHttpConnectionDeletePolicyEntries;
-static FARPROC pfn_WinHttpConnectionDeleteProxyInfo;
-static FARPROC pfn_WinHttpConnectionFreeNameList;
-static FARPROC pfn_WinHttpConnectionFreeProxyInfo;
-static FARPROC pfn_WinHttpConnectionFreeProxyList;
-static FARPROC pfn_WinHttpConnectionGetNameList;
-static FARPROC pfn_WinHttpConnectionGetProxyInfo;
-static FARPROC pfn_WinHttpConnectionGetProxyList;
-static FARPROC pfn_WinHttpConnectionSetPolicyEntries;
-static FARPROC pfn_WinHttpConnectionSetProxyInfo;
-static FARPROC pfn_WinHttpConnectionUpdateIfIndexTable;
-static FARPROC pfn_WinHttpCrackUrl;
-static FARPROC pfn_WinHttpCreateProxyResolver;
-static FARPROC pfn_WinHttpCreateUrl;
-static FARPROC pfn_WinHttpDetectAutoProxyConfigUrl;
-static FARPROC pfn_WinHttpFreeProxyResult;
-static FARPROC pfn_WinHttpFreeProxyResultEx;
-static FARPROC pfn_WinHttpFreeProxySettings;
-static FARPROC pfn_WinHttpGetDefaultProxyConfiguration;
-static FARPROC pfn_WinHttpGetIEProxyConfigForCurrentUser;
-static FARPROC pfn_WinHttpGetProxyForUrl;
-static FARPROC pfn_WinHttpGetProxyForUrlEx;
-static FARPROC pfn_WinHttpGetProxyForUrlEx2;
-static FARPROC pfn_WinHttpGetProxyForUrlHvsi;
-static FARPROC pfn_WinHttpGetProxyResult;
-static FARPROC pfn_WinHttpGetProxyResultEx;
-static FARPROC pfn_WinHttpGetProxySettingsVersion;
-static FARPROC pfn_WinHttpGetTunnelSocket;
-static FARPROC pfn_WinHttpOpen;
-static FARPROC pfn_WinHttpOpenRequest;
-static FARPROC pfn_WinHttpProbeConnectivity;
-static FARPROC pfn_WinHttpQueryAuthSchemes;
-static FARPROC pfn_WinHttpQueryDataAvailable;
-static FARPROC pfn_WinHttpQueryHeaders;
-static FARPROC pfn_WinHttpQueryOption;
-static FARPROC pfn_WinHttpReadData;
-static FARPROC pfn_WinHttpReadProxySettings;
-static FARPROC pfn_WinHttpReadProxySettingsHvsi;
-static FARPROC pfn_WinHttpReceiveResponse;
-static FARPROC pfn_WinHttpResetAutoProxy;
-static FARPROC pfn_WinHttpSaveProxyCredentials;
-static FARPROC pfn_WinHttpSendRequest;
-static FARPROC pfn_WinHttpSetCredentials;
-static FARPROC pfn_WinHttpSetDefaultProxyConfiguration;
-static FARPROC pfn_WinHttpSetOption;
-static FARPROC pfn_WinHttpSetProxySettingsPerUser;
-static FARPROC pfn_WinHttpSetStatusCallback;
-static FARPROC pfn_WinHttpSetTimeouts;
-static FARPROC pfn_WinHttpTimeFromSystemTime;
-static FARPROC pfn_WinHttpTimeToSystemTime;
-static FARPROC pfn_WinHttpWebSocketClose;
-static FARPROC pfn_WinHttpWebSocketCompleteUpgrade;
-static FARPROC pfn_WinHttpWebSocketQueryCloseStatus;
-static FARPROC pfn_WinHttpWebSocketReceive;
-static FARPROC pfn_WinHttpWebSocketSend;
-static FARPROC pfn_WinHttpWebSocketShutdown;
-static FARPROC pfn_WinHttpWriteData;
-static FARPROC pfn_WinHttpWriteProxySettings;
+FARPROC pfn_WinHttpPacJsWorkerMain __attribute__((used));
+FARPROC pfn_WinHttpSetSecureLegacyServersAppCompat __attribute__((used));
+FARPROC pfn_DllCanUnloadNow __attribute__((used));
+FARPROC pfn_DllGetClassObject __attribute__((used));
+FARPROC pfn_Private1 __attribute__((used));
+FARPROC pfn_SvchostPushServiceGlobals __attribute__((used));
+FARPROC pfn_WinHttpAddRequestHeaders __attribute__((used));
+FARPROC pfn_WinHttpAddRequestHeadersEx __attribute__((used));
+FARPROC pfn_WinHttpAutoProxySvcMain __attribute__((used));
+FARPROC pfn_WinHttpCheckPlatform __attribute__((used));
+FARPROC pfn_WinHttpCloseHandle __attribute__((used));
+FARPROC pfn_WinHttpConnect __attribute__((used));
+FARPROC pfn_WinHttpConnectionDeletePolicyEntries __attribute__((used));
+FARPROC pfn_WinHttpConnectionDeleteProxyInfo __attribute__((used));
+FARPROC pfn_WinHttpConnectionFreeNameList __attribute__((used));
+FARPROC pfn_WinHttpConnectionFreeProxyInfo __attribute__((used));
+FARPROC pfn_WinHttpConnectionFreeProxyList __attribute__((used));
+FARPROC pfn_WinHttpConnectionGetNameList __attribute__((used));
+FARPROC pfn_WinHttpConnectionGetProxyInfo __attribute__((used));
+FARPROC pfn_WinHttpConnectionGetProxyList __attribute__((used));
+FARPROC pfn_WinHttpConnectionSetPolicyEntries __attribute__((used));
+FARPROC pfn_WinHttpConnectionSetProxyInfo __attribute__((used));
+FARPROC pfn_WinHttpConnectionUpdateIfIndexTable __attribute__((used));
+FARPROC pfn_WinHttpCrackUrl __attribute__((used));
+FARPROC pfn_WinHttpCreateProxyResolver __attribute__((used));
+FARPROC pfn_WinHttpCreateUrl __attribute__((used));
+FARPROC pfn_WinHttpDetectAutoProxyConfigUrl __attribute__((used));
+FARPROC pfn_WinHttpFreeProxyResult __attribute__((used));
+FARPROC pfn_WinHttpFreeProxyResultEx __attribute__((used));
+FARPROC pfn_WinHttpFreeProxySettings __attribute__((used));
+FARPROC pfn_WinHttpGetDefaultProxyConfiguration __attribute__((used));
+FARPROC pfn_WinHttpGetIEProxyConfigForCurrentUser __attribute__((used));
+FARPROC pfn_WinHttpGetProxyForUrl __attribute__((used));
+FARPROC pfn_WinHttpGetProxyForUrlEx __attribute__((used));
+FARPROC pfn_WinHttpGetProxyForUrlEx2 __attribute__((used));
+FARPROC pfn_WinHttpGetProxyForUrlHvsi __attribute__((used));
+FARPROC pfn_WinHttpGetProxyResult __attribute__((used));
+FARPROC pfn_WinHttpGetProxyResultEx __attribute__((used));
+FARPROC pfn_WinHttpGetProxySettingsVersion __attribute__((used));
+FARPROC pfn_WinHttpGetTunnelSocket __attribute__((used));
+FARPROC pfn_WinHttpOpen __attribute__((used));
+FARPROC pfn_WinHttpOpenRequest __attribute__((used));
+FARPROC pfn_WinHttpProbeConnectivity __attribute__((used));
+FARPROC pfn_WinHttpQueryAuthSchemes __attribute__((used));
+FARPROC pfn_WinHttpQueryDataAvailable __attribute__((used));
+FARPROC pfn_WinHttpQueryHeaders __attribute__((used));
+FARPROC pfn_WinHttpQueryOption __attribute__((used));
+FARPROC pfn_WinHttpReadData __attribute__((used));
+FARPROC pfn_WinHttpReadProxySettings __attribute__((used));
+FARPROC pfn_WinHttpReadProxySettingsHvsi __attribute__((used));
+FARPROC pfn_WinHttpReceiveResponse __attribute__((used));
+FARPROC pfn_WinHttpResetAutoProxy __attribute__((used));
+FARPROC pfn_WinHttpSaveProxyCredentials __attribute__((used));
+FARPROC pfn_WinHttpSendRequest __attribute__((used));
+FARPROC pfn_WinHttpSetCredentials __attribute__((used));
+FARPROC pfn_WinHttpSetDefaultProxyConfiguration __attribute__((used));
+FARPROC pfn_WinHttpSetOption __attribute__((used));
+FARPROC pfn_WinHttpSetProxySettingsPerUser __attribute__((used));
+FARPROC pfn_WinHttpSetStatusCallback __attribute__((used));
+FARPROC pfn_WinHttpSetTimeouts __attribute__((used));
+FARPROC pfn_WinHttpTimeFromSystemTime __attribute__((used));
+FARPROC pfn_WinHttpTimeToSystemTime __attribute__((used));
+FARPROC pfn_WinHttpWebSocketClose __attribute__((used));
+FARPROC pfn_WinHttpWebSocketCompleteUpgrade __attribute__((used));
+FARPROC pfn_WinHttpWebSocketQueryCloseStatus __attribute__((used));
+FARPROC pfn_WinHttpWebSocketReceive __attribute__((used));
+FARPROC pfn_WinHttpWebSocketSend __attribute__((used));
+FARPROC pfn_WinHttpWebSocketShutdown __attribute__((used));
+FARPROC pfn_WinHttpWriteData __attribute__((used));
+FARPROC pfn_WinHttpWriteProxySettings __attribute__((used));
 
-__declspec(dllexport) void *WinHttpPacJsWorkerMain() { return (void *)pfn_WinHttpPacJsWorkerMain(); }
-__declspec(dllexport) void *WinHttpSetSecureLegacyServersAppCompat() { return (void *)pfn_WinHttpSetSecureLegacyServersAppCompat(); }
-__declspec(dllexport) void *DllCanUnloadNow() { return (void *)pfn_DllCanUnloadNow(); }
-__declspec(dllexport) void *DllGetClassObject() { return (void *)pfn_DllGetClassObject(); }
-__declspec(dllexport) void *Private1() { return (void *)pfn_Private1(); }
-__declspec(dllexport) void *SvchostPushServiceGlobals() { return (void *)pfn_SvchostPushServiceGlobals(); }
-__declspec(dllexport) void *WinHttpAddRequestHeaders() { return (void *)pfn_WinHttpAddRequestHeaders(); }
-__declspec(dllexport) void *WinHttpAddRequestHeadersEx() { return (void *)pfn_WinHttpAddRequestHeadersEx(); }
-__declspec(dllexport) void *WinHttpAutoProxySvcMain() { return (void *)pfn_WinHttpAutoProxySvcMain(); }
-__declspec(dllexport) void *WinHttpCheckPlatform() { return (void *)pfn_WinHttpCheckPlatform(); }
-__declspec(dllexport) void *WinHttpCloseHandle() { return (void *)pfn_WinHttpCloseHandle(); }
-__declspec(dllexport) void *WinHttpConnect() { return (void *)pfn_WinHttpConnect(); }
-__declspec(dllexport) void *WinHttpConnectionDeletePolicyEntries() { return (void *)pfn_WinHttpConnectionDeletePolicyEntries(); }
-__declspec(dllexport) void *WinHttpConnectionDeleteProxyInfo() { return (void *)pfn_WinHttpConnectionDeleteProxyInfo(); }
-__declspec(dllexport) void *WinHttpConnectionFreeNameList() { return (void *)pfn_WinHttpConnectionFreeNameList(); }
-__declspec(dllexport) void *WinHttpConnectionFreeProxyInfo() { return (void *)pfn_WinHttpConnectionFreeProxyInfo(); }
-__declspec(dllexport) void *WinHttpConnectionFreeProxyList() { return (void *)pfn_WinHttpConnectionFreeProxyList(); }
-__declspec(dllexport) void *WinHttpConnectionGetNameList() { return (void *)pfn_WinHttpConnectionGetNameList(); }
-__declspec(dllexport) void *WinHttpConnectionGetProxyInfo() { return (void *)pfn_WinHttpConnectionGetProxyInfo(); }
-__declspec(dllexport) void *WinHttpConnectionGetProxyList() { return (void *)pfn_WinHttpConnectionGetProxyList(); }
-__declspec(dllexport) void *WinHttpConnectionSetPolicyEntries() { return (void *)pfn_WinHttpConnectionSetPolicyEntries(); }
-__declspec(dllexport) void *WinHttpConnectionSetProxyInfo() { return (void *)pfn_WinHttpConnectionSetProxyInfo(); }
-__declspec(dllexport) void *WinHttpConnectionUpdateIfIndexTable() { return (void *)pfn_WinHttpConnectionUpdateIfIndexTable(); }
-__declspec(dllexport) void *WinHttpCrackUrl() { return (void *)pfn_WinHttpCrackUrl(); }
-__declspec(dllexport) void *WinHttpCreateProxyResolver() { return (void *)pfn_WinHttpCreateProxyResolver(); }
-__declspec(dllexport) void *WinHttpCreateUrl() { return (void *)pfn_WinHttpCreateUrl(); }
-__declspec(dllexport) void *WinHttpDetectAutoProxyConfigUrl() { return (void *)pfn_WinHttpDetectAutoProxyConfigUrl(); }
-__declspec(dllexport) void *WinHttpFreeProxyResult() { return (void *)pfn_WinHttpFreeProxyResult(); }
-__declspec(dllexport) void *WinHttpFreeProxyResultEx() { return (void *)pfn_WinHttpFreeProxyResultEx(); }
-__declspec(dllexport) void *WinHttpFreeProxySettings() { return (void *)pfn_WinHttpFreeProxySettings(); }
-__declspec(dllexport) void *WinHttpGetDefaultProxyConfiguration() { return (void *)pfn_WinHttpGetDefaultProxyConfiguration(); }
-__declspec(dllexport) void *WinHttpGetIEProxyConfigForCurrentUser() { return (void *)pfn_WinHttpGetIEProxyConfigForCurrentUser(); }
-__declspec(dllexport) void *WinHttpGetProxyForUrl() { return (void *)pfn_WinHttpGetProxyForUrl(); }
-__declspec(dllexport) void *WinHttpGetProxyForUrlEx() { return (void *)pfn_WinHttpGetProxyForUrlEx(); }
-__declspec(dllexport) void *WinHttpGetProxyForUrlEx2() { return (void *)pfn_WinHttpGetProxyForUrlEx2(); }
-__declspec(dllexport) void *WinHttpGetProxyForUrlHvsi() { return (void *)pfn_WinHttpGetProxyForUrlHvsi(); }
-__declspec(dllexport) void *WinHttpGetProxyResult() { return (void *)pfn_WinHttpGetProxyResult(); }
-__declspec(dllexport) void *WinHttpGetProxyResultEx() { return (void *)pfn_WinHttpGetProxyResultEx(); }
-__declspec(dllexport) void *WinHttpGetProxySettingsVersion() { return (void *)pfn_WinHttpGetProxySettingsVersion(); }
-__declspec(dllexport) void *WinHttpGetTunnelSocket() { return (void *)pfn_WinHttpGetTunnelSocket(); }
-__declspec(dllexport) void *WinHttpOpen() { return (void *)pfn_WinHttpOpen(); }
-__declspec(dllexport) void *WinHttpOpenRequest() { return (void *)pfn_WinHttpOpenRequest(); }
-__declspec(dllexport) void *WinHttpProbeConnectivity() { return (void *)pfn_WinHttpProbeConnectivity(); }
-__declspec(dllexport) void *WinHttpQueryAuthSchemes() { return (void *)pfn_WinHttpQueryAuthSchemes(); }
-__declspec(dllexport) void *WinHttpQueryDataAvailable() { return (void *)pfn_WinHttpQueryDataAvailable(); }
-__declspec(dllexport) void *WinHttpQueryHeaders() { return (void *)pfn_WinHttpQueryHeaders(); }
-__declspec(dllexport) void *WinHttpQueryOption() { return (void *)pfn_WinHttpQueryOption(); }
-__declspec(dllexport) void *WinHttpReadData() { return (void *)pfn_WinHttpReadData(); }
-__declspec(dllexport) void *WinHttpReadProxySettings() { return (void *)pfn_WinHttpReadProxySettings(); }
-__declspec(dllexport) void *WinHttpReadProxySettingsHvsi() { return (void *)pfn_WinHttpReadProxySettingsHvsi(); }
-__declspec(dllexport) void *WinHttpReceiveResponse() { return (void *)pfn_WinHttpReceiveResponse(); }
-__declspec(dllexport) void *WinHttpResetAutoProxy() { return (void *)pfn_WinHttpResetAutoProxy(); }
-__declspec(dllexport) void *WinHttpSaveProxyCredentials() { return (void *)pfn_WinHttpSaveProxyCredentials(); }
-__declspec(dllexport) void *WinHttpSendRequest() { return (void *)pfn_WinHttpSendRequest(); }
-__declspec(dllexport) void *WinHttpSetCredentials() { return (void *)pfn_WinHttpSetCredentials(); }
-__declspec(dllexport) void *WinHttpSetDefaultProxyConfiguration() { return (void *)pfn_WinHttpSetDefaultProxyConfiguration(); }
-__declspec(dllexport) void *WinHttpSetOption() { return (void *)pfn_WinHttpSetOption(); }
-__declspec(dllexport) void *WinHttpSetProxySettingsPerUser() { return (void *)pfn_WinHttpSetProxySettingsPerUser(); }
-__declspec(dllexport) void *WinHttpSetStatusCallback() { return (void *)pfn_WinHttpSetStatusCallback(); }
-__declspec(dllexport) void *WinHttpSetTimeouts() { return (void *)pfn_WinHttpSetTimeouts(); }
-__declspec(dllexport) void *WinHttpTimeFromSystemTime() { return (void *)pfn_WinHttpTimeFromSystemTime(); }
-__declspec(dllexport) void *WinHttpTimeToSystemTime() { return (void *)pfn_WinHttpTimeToSystemTime(); }
-__declspec(dllexport) void *WinHttpWebSocketClose() { return (void *)pfn_WinHttpWebSocketClose(); }
-__declspec(dllexport) void *WinHttpWebSocketCompleteUpgrade() { return (void *)pfn_WinHttpWebSocketCompleteUpgrade(); }
-__declspec(dllexport) void *WinHttpWebSocketQueryCloseStatus() { return (void *)pfn_WinHttpWebSocketQueryCloseStatus(); }
-__declspec(dllexport) void *WinHttpWebSocketReceive() { return (void *)pfn_WinHttpWebSocketReceive(); }
-__declspec(dllexport) void *WinHttpWebSocketSend() { return (void *)pfn_WinHttpWebSocketSend(); }
-__declspec(dllexport) void *WinHttpWebSocketShutdown() { return (void *)pfn_WinHttpWebSocketShutdown(); }
-__declspec(dllexport) void *WinHttpWriteData() { return (void *)pfn_WinHttpWriteData(); }
-__declspec(dllexport) void *WinHttpWriteProxySettings() { return (void *)pfn_WinHttpWriteProxySettings(); }
+__declspec(naked) __declspec(dllexport) void WinHttpPacJsWorkerMain() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpPacJsWorkerMain(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpPacJsWorkerMain");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetSecureLegacyServersAppCompat() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetSecureLegacyServersAppCompat(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetSecureLegacyServersAppCompat");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void DllCanUnloadNow() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_DllCanUnloadNow(%rip)");
+#else
+  __asm__("jmp *pfn_DllCanUnloadNow");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void DllGetClassObject() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_DllGetClassObject(%rip)");
+#else
+  __asm__("jmp *pfn_DllGetClassObject");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void Private1() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_Private1(%rip)");
+#else
+  __asm__("jmp *pfn_Private1");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void SvchostPushServiceGlobals() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_SvchostPushServiceGlobals(%rip)");
+#else
+  __asm__("jmp *pfn_SvchostPushServiceGlobals");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpAddRequestHeaders() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpAddRequestHeaders(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpAddRequestHeaders");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpAddRequestHeadersEx() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpAddRequestHeadersEx(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpAddRequestHeadersEx");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpAutoProxySvcMain() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpAutoProxySvcMain(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpAutoProxySvcMain");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpCheckPlatform() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpCheckPlatform(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpCheckPlatform");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpCloseHandle() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpCloseHandle(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpCloseHandle");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnect() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnect(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnect");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionDeletePolicyEntries() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionDeletePolicyEntries(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionDeletePolicyEntries");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionDeleteProxyInfo() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionDeleteProxyInfo(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionDeleteProxyInfo");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionFreeNameList() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionFreeNameList(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionFreeNameList");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionFreeProxyInfo() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionFreeProxyInfo(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionFreeProxyInfo");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionFreeProxyList() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionFreeProxyList(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionFreeProxyList");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionGetNameList() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionGetNameList(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionGetNameList");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionGetProxyInfo() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionGetProxyInfo(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionGetProxyInfo");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionGetProxyList() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionGetProxyList(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionGetProxyList");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionSetPolicyEntries() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionSetPolicyEntries(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionSetPolicyEntries");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionSetProxyInfo() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionSetProxyInfo(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionSetProxyInfo");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpConnectionUpdateIfIndexTable() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpConnectionUpdateIfIndexTable(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpConnectionUpdateIfIndexTable");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpCrackUrl() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpCrackUrl(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpCrackUrl");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpCreateProxyResolver() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpCreateProxyResolver(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpCreateProxyResolver");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpCreateUrl() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpCreateUrl(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpCreateUrl");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpDetectAutoProxyConfigUrl() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpDetectAutoProxyConfigUrl(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpDetectAutoProxyConfigUrl");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpFreeProxyResult() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpFreeProxyResult(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpFreeProxyResult");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpFreeProxyResultEx() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpFreeProxyResultEx(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpFreeProxyResultEx");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpFreeProxySettings() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpFreeProxySettings(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpFreeProxySettings");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetDefaultProxyConfiguration() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetDefaultProxyConfiguration(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetDefaultProxyConfiguration");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetIEProxyConfigForCurrentUser() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetIEProxyConfigForCurrentUser(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetIEProxyConfigForCurrentUser");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxyForUrl() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxyForUrl(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxyForUrl");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxyForUrlEx() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxyForUrlEx(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxyForUrlEx");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxyForUrlEx2() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxyForUrlEx2(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxyForUrlEx2");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxyForUrlHvsi() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxyForUrlHvsi(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxyForUrlHvsi");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxyResult() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxyResult(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxyResult");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxyResultEx() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxyResultEx(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxyResultEx");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetProxySettingsVersion() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetProxySettingsVersion(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetProxySettingsVersion");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpGetTunnelSocket() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpGetTunnelSocket(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpGetTunnelSocket");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpOpen() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpOpen(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpOpen");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpOpenRequest() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpOpenRequest(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpOpenRequest");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpProbeConnectivity() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpProbeConnectivity(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpProbeConnectivity");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpQueryAuthSchemes() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpQueryAuthSchemes(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpQueryAuthSchemes");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpQueryDataAvailable() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpQueryDataAvailable(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpQueryDataAvailable");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpQueryHeaders() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpQueryHeaders(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpQueryHeaders");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpQueryOption() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpQueryOption(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpQueryOption");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpReadData() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpReadData(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpReadData");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpReadProxySettings() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpReadProxySettings(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpReadProxySettings");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpReadProxySettingsHvsi() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpReadProxySettingsHvsi(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpReadProxySettingsHvsi");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpReceiveResponse() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpReceiveResponse(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpReceiveResponse");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpResetAutoProxy() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpResetAutoProxy(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpResetAutoProxy");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSaveProxyCredentials() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSaveProxyCredentials(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSaveProxyCredentials");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSendRequest() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSendRequest(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSendRequest");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetCredentials() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetCredentials(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetCredentials");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetDefaultProxyConfiguration() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetDefaultProxyConfiguration(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetDefaultProxyConfiguration");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetOption() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetOption(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetOption");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetProxySettingsPerUser() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetProxySettingsPerUser(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetProxySettingsPerUser");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetStatusCallback() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetStatusCallback(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetStatusCallback");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpSetTimeouts() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpSetTimeouts(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpSetTimeouts");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpTimeFromSystemTime() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpTimeFromSystemTime(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpTimeFromSystemTime");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpTimeToSystemTime() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpTimeToSystemTime(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpTimeToSystemTime");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWebSocketClose() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWebSocketClose(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWebSocketClose");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWebSocketCompleteUpgrade() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWebSocketCompleteUpgrade(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWebSocketCompleteUpgrade");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWebSocketQueryCloseStatus() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWebSocketQueryCloseStatus(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWebSocketQueryCloseStatus");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWebSocketReceive() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWebSocketReceive(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWebSocketReceive");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWebSocketSend() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWebSocketSend(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWebSocketSend");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWebSocketShutdown() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWebSocketShutdown(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWebSocketShutdown");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWriteData() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWriteData(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWriteData");
+#endif
+}
+__declspec(naked) __declspec(dllexport) void WinHttpWriteProxySettings() {
+#if defined(__x86_64__) || defined(_M_X64)
+  __asm__("jmp *pfn_WinHttpWriteProxySettings(%rip)");
+#else
+  __asm__("jmp *pfn_WinHttpWriteProxySettings");
+#endif
+}
 
 void proxy_importFunctions(void *hModule) {
   pfn_WinHttpPacJsWorkerMain = GetProcAddress(hModule, "WinHttpPacJsWorkerMain");

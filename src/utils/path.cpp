@@ -406,6 +406,9 @@ std::wstring HTiPathJoin(
   std::wstring firstPart = args[0]
     , joined = join(args, L'\\');
 
+  if (firstPart.empty())
+    return HTiPathNormalize(joined);
+
   // Make sure that the joined path doesn't start with two slashes, because
   // HTiPathNormalize() will mistake it for a UNC path then.
   //
@@ -513,7 +516,7 @@ std::wstring HTiPathResolve(
         !args.size()
         || (
           (args.size() == 1 && (!args[0].size() || args[0][0] == L'.'))
-          && isPathSeparator(path[0])
+          && !path.empty() && isPathSeparator(path[0])
         )
       ) {
         return path;
@@ -529,7 +532,8 @@ std::wstring HTiPathResolve(
       // Verify that a cwd was found and that it actually points
       // to our drive. If not, default to the drive's root.
       if (
-        toLowerCase(path.substr(0, 2)) != toLowerCase(resolvedDevice)
+        path.size() >= 3
+        && toLowerCase(path.substr(0, 2)) != toLowerCase(resolvedDevice)
         && path[2] == L'\\'
       ) {
         path = resolvedDevice + L"\\";
@@ -540,6 +544,8 @@ std::wstring HTiPathResolve(
       , rootEnd = 0;
     std::wstring device;
     bool isAbsolute = false;
+    if (path.empty())
+      continue;
     wchar_t code = path[0];
 
     // Try to match a root.

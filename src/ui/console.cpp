@@ -212,7 +212,7 @@ static void textFormatInto(
       fmt(pBegin, subStrLen - 1, basicColor);
       pBegin = &str[i + 1];
       subStrLen = 0;
-      if (*pBegin == '\0')
+      if (i >= length || *pBegin == '\0')
         break;
       continue;
     }
@@ -250,13 +250,6 @@ void HTiRenderConsoleTexts() {
   ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
   f32 scrollY = ImGui::GetScrollY();
 
-  // Visible line range.
-  i32 lineBegin = (i32)floorf(scrollY / lineHeight);
-  i32 lineEnd = std::max(std::min(
-    (i32)(gText.size() - 1),
-    lineBegin + (i32)floor((scrollY + contentSize.y) / lineHeight) + 1
-  ), 0);
-
   if (gText.empty()) {
     // Early return.
     ImGui::Dummy(ImVec2(0, 0));
@@ -264,6 +257,13 @@ void HTiRenderConsoleTexts() {
     ImGui::PopStyleVar();
     return;
   }
+
+  // Visible line range.
+  i32 lineBegin = (i32)floorf(scrollY / lineHeight);
+  i32 lineEnd = std::max(std::min(
+    (i32)(gText.size() - 1),
+    lineBegin + (i32)floor((scrollY + contentSize.y) / lineHeight) + 1
+  ), 0);
 
   ImU32 prevColor = 0xFFFFFFFF;
   std::string lineBuffer;
@@ -370,14 +370,19 @@ void HTiAddConsoleLineV(
   va_copy(argDup, args);
 
   len = vsnprintf(nullptr, 0, fmt, args);
-  if (len <= 0)
+  if (len <= 0) {
+    va_end(argDup);
     return;
+  }
 
   buffer = (char *)ImGui::MemAlloc(len + 1);
-  if (!buffer)
+  if (!buffer) {
+    va_end(argDup);
     return;
+  }
 
   vsnprintf(buffer, len + 1, fmt, argDup);
+  va_end(argDup);
   buffer[len] = 0;
 
   if (gText.size() >= CONSOLE_MAX_LINE)

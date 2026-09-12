@@ -146,19 +146,16 @@ void HTiRemoveAllEventCallbacksOf(
   for (auto itEvent = gEventCallbacks.begin(); itEvent != gEventCallbacks.end(); ) {
     auto &callbacks = itEvent->second;
 
-    // Walks along all callbacks of current event.
     for (auto itCallback = callbacks.begin(); itCallback != callbacks.end(); ) {
       if (itCallback->second == hModuleOwner)
-        // Remove the callback from the mod.
         itCallback = callbacks.erase(itCallback);
       else
-        itCallback++;
-
-      // Remove the event entry if the event is empty.
-      if (callbacks.empty())
-        itEvent = gEventCallbacks.erase(itEvent);
-      else
-        itEvent++;
+        ++itCallback;
     }
+
+    if (callbacks.empty())
+      itEvent = gEventCallbacks.erase(itEvent);
+    else
+      ++itEvent;
   }
 }

@@ -46,22 +46,16 @@ static HTKeyCode waitForKeyPress() {
 }
 
 static i32 keyBindWidget(HTKeyCode *key) {
-  ImGuiIO &io = ImGui::GetIO();
-
   gFakeBuffer[0] = 0;
 
-  // Modify a key.
-  io.WantCaptureKeyboard = true;
+  // Modify a key. ImGui will set WantCaptureKeyboard while this input item is
+  // active; writing that output flag manually makes focus sticky forever.
   ImGui::SetNextItemWidth(HOTKEY_DISPLAY_WIDTH);
   ImGui::InputText(
     "##KeyModify",
     gFakeBuffer,
     sizeof(gFakeBuffer));
   bool hovered = ImGui::IsItemHovered();
-
-  if (hovered)
-    // Forcely capture the keyboard inputs if the input area is hovered.
-    ImGui::SetKeyboardFocusHere(-1);
 
   HTKeyCode keyPressed = waitForKeyPress();
   if (keyPressed == HTKey_None)
@@ -73,6 +67,10 @@ static i32 keyBindWidget(HTKeyCode *key) {
   else if (keyPressed == HTKey_Escape)
     // Clear key binding, which means setting it to HTKey_None.
     *key = HTKey_None;
+  else if (keyPressed == HTKey_LeftAlt || keyPressed == HTKey_RightAlt)
+    // Alt is the host game's mouse-release escape hatch; never consume it as
+    // a user binding while the loader menu is editing a key.
+    return -1;
   else
     // Capture any key inputs and write the captured key into the ModKeyBind
     // struct.

@@ -9,6 +9,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
+#include <atomic>
 
 #include "imgui.h"
 #include "cJSON.h"
@@ -80,8 +81,11 @@ extern char gPathDll[MAX_PATH]
 extern wchar_t gPathModsWide[MAX_PATH]
   , gPathDataWide[MAX_PATH];
 extern HANDLE gHeap
-  , gEventGuiInit;
+  , gEventGuiInit
+  , gInitThread;
 extern HMODULE gModLoaderHandle;
+extern std::atomic<bool> gLoaderShuttingDown;
+extern std::atomic<bool> gLoaderInitialized;
 
 // ----------------------------------------------------------------------------
 // [SECTION] Codepage, file and path.
@@ -119,6 +123,8 @@ static inline std::wstring HTiUtf8ToWstring(
   u64 len = strlen(input);
   std::wstring result;
   i32 size = MultiByteToWideChar(CP_UTF8, 0, input, len, nullptr, 0);
+  if (size <= 0)
+    return L"";
   result.resize(size);
   MultiByteToWideChar(CP_UTF8, 0, input, len, &result[0], size);
   return result;
@@ -132,6 +138,8 @@ static inline std::string HTiWstringToUtf8(
     return "";
   std::string result;
   i32 size = WideCharToMultiByte(CP_UTF8, 0, input, -1, nullptr, 0, nullptr, nullptr);
+  if (size <= 0)
+    return "";
   result.resize(size);
   WideCharToMultiByte(CP_UTF8, 0, input, -1, result.data(), size, nullptr, nullptr);
   return result;
@@ -694,6 +702,7 @@ void HTiBootstrap();
 
 extern bool gShowMainMenu
   , gShowDebugger;
+extern bool gImGuiWantsMouse;
 
 // Initialize ImGui context and window message hook.
 //
@@ -712,6 +721,8 @@ void HTiRenderGUI(
 // Toggle main menu display status. Referenced by bootstrap.cpp, the callback
 // of hKeyMenuToggle.
 void HTiToggleMenuState(
+  HTKeyEvent *);
+void HTiReleaseInputCapture(
   HTKeyEvent *);
 
 // Submenus.

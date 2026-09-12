@@ -176,13 +176,15 @@ static HTStatus HTHotkeyBindEx(
 
   if (reset)
     keyCode = kb->defaultKey;
+  else if (keyCode != HTKey_None && !HTiIsNamedKey(keyCode))
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   if (kb->key == keyCode)
     // If the key is not changed, we won't actually set the key.
     return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 
   event.flags = reset
-    ? HTKeyEventFlags_ChangeBind
-    : HTKeyEventFlags_ResetBind;
+    ? HTKeyEventFlags_ResetBind
+    : HTKeyEventFlags_ChangeBind;
   event.hKey = (HTHandle)kb;
   event.key = kb->key;
   event.down = 0;

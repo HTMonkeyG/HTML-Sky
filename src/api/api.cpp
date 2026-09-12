@@ -20,6 +20,8 @@ HTMLAPIATTR HTError HTMLAPI HTGetLastError() {
 HTMLAPIATTR VOID HTMLAPI HTGetLoaderVersion(
   UINT32 *result
 ) {
+  if (!result)
+    return;
   *result = HTML_VERSION;
 }
 
@@ -27,11 +29,10 @@ HTMLAPIATTR VOID HTMLAPI HTGetLoaderVersionName(
   LPSTR result,
   UINT32 max
 ) {
-  if (!max)
+  if (!result || !max)
     return;
-  if (max == 1)
-    *result = '\0';
   strncpy(result, HTML_VERSION_NAME, max - 1);
+  result[max - 1] = '\0';
 }
 
 HTMLAPIATTR VOID HTMLAPI HTGetGameStatus(
@@ -82,8 +83,12 @@ HTMLAPIATTR HMODULE HTMLAPI HTGetModuleHandle(
   }
 
   // Get module handle from name.
+  std::lock_guard<std::mutex> lock(gModDataLock);
   auto it = gModDataLoader.find(module);
   if (it == gModDataLoader.end())
+    return nullptr;
+
+  if (!it->second.runtime)
     return nullptr;
 
   return it->second.runtime->handle;
@@ -112,6 +117,8 @@ HTMLAPIATTR UINT32 HTMLAPI HTGetModInfoFrom(
   LPVOID out,
   UINT32 maxLen
 ) {
+  std::lock_guard<std::mutex> lock(gModDataLock);
+
   if (!HTiCheckHandleType(hManifest, HTHandleType_Manifest))
     return HTiErrAndRet(HTError_InvalidHandle, 0);
 
@@ -176,7 +183,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionGetCustom(
   std::lock_guard<std::mutex> lock(gModDataLock);
 
   // Param validation.
-  if (!hModule)
+  if (!hModule || !key)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
   if (!data && type != HTOptionType_String)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
@@ -210,10 +217,21 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionGetCustom(
         // Copy the entire string.
         strcpy((char *)data, option.valueString.c_str());
       else if (data && cch) {
-        // Copy string with length limit. If the value `cch` points to is 0,
-        // the function acts the same as `cch` == NULL.
-        strncpy((char *)data, option.valueString.c_str(), *cch - 1);
-        *cch = std::min(*cch, (UINT32)(option.valueString.length() + 1));
+        UINT32 capacity = *cch;
+        UINT32 required = (UINT32)option.valueString.length() + 1;
+
+        if (!capacity) {
+          *cch = required;
+          return HTiErrAndRet(HTError_InsufficientBuffer, HT_FAIL);
+        }
+
+        UINT32 copied = std::min(capacity - 1, required - 1);
+        memcpy(data, option.valueString.data(), copied);
+        ((char *)data)[copied] = '\0';
+        *cch = copied + 1;
+
+        if (capacity < required)
+          return HTiErrAndRet(HTError_InsufficientBuffer, HT_FAIL);
       }
       break;
     default:
@@ -231,7 +249,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionSetCustom(
 ) {
   std::lock_guard<std::mutex> lock(gModDataLock);
 
-  if (!hModule || !data)
+  if (!hModule || !key || !data)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
 
   ModRuntime *rt = HTiGetModRuntime(hModule);

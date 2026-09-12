@@ -30,3 +30,6 @@ HMODULE gModLoaderHandle = NULL;
 HANDLE gHeap = NULL;
 // This event is set when the gui is completely inited and begins rendering.
 HANDLE gEventGuiInit = NULL;
+HANDLE gInitThread = NULL;
+std::atomic<bool> gLoaderShuttingDown{false};
+std::atomic<bool> gLoaderInitialized{false};

@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <unordered_map>
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_vulkan.h"
 #include "vulkan/vulkan.h"
@@ -13,6 +14,7 @@
 
 bool gShowMainMenu = true
   , gShowDebugger = false;
+bool gImGuiWantsMouse = false;
 
 /**
  * Initialize ImGui context and window message hook.
@@ -74,6 +76,7 @@ void HTiInitGUI() {
  * Shutdown ImGui. Currently unused.
  */
 void HTiDeinitGUI() {
+  HTiUninstallInputHook();
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();
@@ -92,6 +95,12 @@ void HTiUpdateGUI() {
       guiRenderer(io.DeltaTime, nullptr);
   }
 
+  // Cache capture state once per frame. WM_MOUSEMOVE can arrive hundreds of
+  // times between frames; querying ImGui window hover state from the WndProc
+  // makes the game's input thread do an O(number-of-windows) scan per event.
+  gImGuiWantsMouse = io.WantCaptureMouse
+    || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+
   // Update all options.
   HTiOptionsUpdate(io.DeltaTime);
 }
@@ -106,4 +115,18 @@ void HTiRenderGUI(f32, void *) {
 void HTiToggleMenuState(HTKeyEvent *event) {
   if ((event->flags & HTKeyEventFlags_Mask) == HTKeyEventFlags_Down)
     gShowMainMenu = !gShowMainMenu;
+}
+
+void HTiReleaseInputCapture(HTKeyEvent *event) {
+  if (!event || (event->flags & HTKeyEventFlags_Mask) != HTKeyEventFlags_Down)
+    return;
+
+  if (ImGui::GetCurrentContext()) {
+    ImGui::ClearActiveID();
+    ImGui::GetIO().WantCaptureKeyboard = false;
+    ImGui::GetIO().WantCaptureMouse = false;
+  }
+
+  ReleaseCapture();
+  ClipCursor(nullptr);
 }

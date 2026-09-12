@@ -31,9 +31,15 @@ var functionNames = function() {
 }();
 
 for (var fn of functionNames) {
-  proxy.declaration += `static FARPROC pfn_${fn};\n`;
-  proxy.detour += `__declspec(dllexport) void *${fn}() { return (void *)pfn_${fn}(); }\n`;
-  //proxy.detour += `void *${fn}() { return (void *)pfn_${fn}(); }\n`;
+  proxy.declaration += `FARPROC pfn_${fn} __attribute__((used));\n`;
+  // A naked jump preserves the original WinHTTP ABI without maintaining a
+  // fragile hand-written prototype list for every Windows SDK version.
+  proxy.detour += `__declspec(naked) __declspec(dllexport) void ${fn}() {\n`;
+  proxy.detour += `#if defined(__x86_64__) || defined(_M_X64)\n`;
+  proxy.detour += `  __asm__("jmp *pfn_${fn}(%rip)");\n`;
+  proxy.detour += `#else\n`;
+  proxy.detour += `  __asm__("jmp *pfn_${fn}");\n`;
+  proxy.detour += `#endif\n}\n`;
   proxy.import += `  pfn_${fn} = GetProcAddress(hModule, "${fn}");\n`;
   proxy.def += `  ${fn} = detour_${fn}\n`;
 }

@@ -4,6 +4,7 @@
 // ----------------------------------------------------------------------------
 #include <windows.h>
 #include <mutex>
+#include <thread>
 #include "imgui.h"
 
 #include "htinternal.hpp"
@@ -16,6 +17,7 @@ static i32 checkEditionDefault(
   HTGameEdition);
 static CRITICAL_SECTION gGraphicInitMutex;
 static PFN_HTiGameEditionCheck gEditionCheck = checkEditionDefault;
+static std::once_flag gGuiInitOnce;
 
 char gActiveGameBackendName[32] = {0};
 char gActiveGLBackendName[32] = {0};
@@ -29,6 +31,8 @@ static i32 checkEditionDefault(
 
 int HTiBackendGLEnterCritical() {
   EnterCriticalSection(&gGraphicInitMutex);
+  if (!ImGui::GetCurrentContext())
+    return 1;
   return !ImGui::GetIO().BackendRendererUserData;
 }
 
@@ -38,9 +42,11 @@ int HTiBackendGLLeaveCritical() {
 }
 
 int HTiBackendGLInitComplete() {
-  SetEvent(gEventGuiInit);
-  // Enable all mods.
-  HTiEnableMods();
+  std::call_once(gGuiInitOnce, [] {
+    if (gEventGuiInit)
+      SetEvent(gEventGuiInit);
+    HTiEnableMods();
+  });
   return 1;
 }
 
@@ -56,6 +62,8 @@ int HTiBackendCheckEdition(
 int HTiBackendSetEditionCheckFunc(
   PFN_HTVoidFunction func
 ) {
+  if (!func)
+    return 0;
   gEditionCheck = (PFN_HTiGameEditionCheck)func;
   return 1;
 }

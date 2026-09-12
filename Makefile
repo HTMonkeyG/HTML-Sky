@@ -63,6 +63,11 @@ $(DIST_DIR)/%.o: %.cpp $(CXX_HEADER)
 	@echo Compiling file "$<" ...
 	@$(CXX) $(CFLAGS) -c $< -o $@
 
+# The proxy stubs contain compiler-level jump trampolines. Keep this object
+# outside LTO so the assembly references to the runtime dispatch slots remain
+# materialized in the final image.
+$(DIST_DIR)/winhttp-proxy.o: CFLAGS += -fno-lto
+
 $(DIST_DIR):
 	-@mkdir dist
 

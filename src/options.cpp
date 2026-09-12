@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string>
+#include <mutex>
 #include "cJSON.h"
 #include "imgui.h"
 #include "includes/htmodloader.h"
@@ -8,6 +9,7 @@
 #define HT_OPTIONS_SAVE_RATE 5.0f
 
 static f32 gOptionsDirtyTimer = 0.0f;
+static std::mutex gOptionsMutex;
 
 ModLoaderOptions gModLoaderOptions;
 
@@ -160,23 +162,29 @@ void HTiOptionsLoadFor(
 }
 
 void HTiOptionsMarkDirty() {
+  std::lock_guard<std::mutex> lock(gOptionsMutex);
   if (gOptionsDirtyTimer <= 0.0f)
-    // FIXME: Needs mutex or atomic operation to avoid race conditions.
     gOptionsDirtyTimer = HT_OPTIONS_SAVE_RATE;
 }
 
 void HTiOptionsUpdate(
   f32 timeElapsed
 ) {
-  if (gOptionsDirtyTimer > 0.0f) {
-    gOptionsDirtyTimer -= timeElapsed;
-    if (gOptionsDirtyTimer <= 0.0f) {
-      // Save options.
-      std::wstring path(gPathDataWide);
-      path += L"\\options.json";
-      HTiOptionsWriteToFile(path.c_str());
-      gOptionsDirtyTimer = 0.0f;
+  bool shouldSave = false;
+  {
+    std::lock_guard<std::mutex> lock(gOptionsMutex);
+    if (gOptionsDirtyTimer > 0.0f) {
+      gOptionsDirtyTimer -= timeElapsed;
+      shouldSave = gOptionsDirtyTimer <= 0.0f;
+      if (shouldSave)
+        gOptionsDirtyTimer = 0.0f;
     }
+  }
+
+  if (shouldSave) {
+    std::wstring path(gPathDataWide);
+    path += L"\\options.json";
+    HTiOptionsWriteToFile(path.c_str());
   }
 }
 
@@ -252,6 +260,7 @@ static void saveOptionsForMod(
 
 // Write all options to a JSON object.
 static cJSON *HTiOptionsWriteToMem() {
+  std::lock_guard<std::mutex> lock(gModDataLock);
   auto &memOptions = gModLoaderOptions.modOptions;
   cJSON *root = cJSON_CreateObject()
     , *modOptions = cJSON_CreateObject();
@@ -276,10 +285,13 @@ void HTiOptionsWriteToFile(
   const wchar_t *path
 ) {
   FILE *fd = _wfopen(path, L"wb+");
+  if (!fd)
+    return;
   cJSON *json = HTiOptionsWriteToMem();
 
   const char *string = cJSON_Print(json);
-  fwrite(string, sizeof(char), strlen(string), fd);
+  if (string)
+    fwrite(string, sizeof(char), strlen(string), fd);
 
   cJSON_Delete(json);
   cJSON_free((void *)string);

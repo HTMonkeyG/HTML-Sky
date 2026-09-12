@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <climits>
 #include <cctype>
+#include <charconv>
 #include <sstream>
 #include "htinternal.hpp"
 
@@ -130,6 +131,13 @@ bool isNumericStr(const std::string &s) {
   return true;
 }
 
+static bool parseInt(const std::string &s, int &out) {
+  if (s.empty())
+    return false;
+  auto result = std::from_chars(s.data(), s.data() + s.size(), out, 10);
+  return result.ec == std::errc{} && result.ptr == s.data() + s.size();
+}
+
 int compareIds(
   const std::string &a,
   const std::string &b
@@ -215,11 +223,14 @@ static bool parsePartialVersion(
     return false;
   size_t start = i;
   while (i < s.size() && isDigit(s[i])) ++i;
-  out.major = std::stoi(s.substr(start, i - start));
+  if (!parseInt(s.substr(start, i - start), out.major))
+    return false;
 
-  if (i >= s.size() || s[i] != '.')
+  if (i >= s.size())
     // Only major given.
     return true;
+  if (s[i] != '.')
+    return false;
   // Consume '.'
   i++;
 
@@ -231,11 +242,14 @@ static bool parsePartialVersion(
     return false;
   start = i;
   while (i < s.size() && isDigit(s[i])) ++i;
-  out.minor = std::stoi(s.substr(start, i - start));
+  if (!parseInt(s.substr(start, i - start), out.minor))
+    return false;
 
-  if (i >= s.size() || s[i] != '.')
+  if (i >= s.size())
     // Major.minor only.
     return true;
+  if (s[i] != '.')
+    return false;
   // Consume '.'
   i++;
 
@@ -250,7 +264,8 @@ static bool parsePartialVersion(
     return false;
   start = i;
   while (i < s.size() && isDigit(s[i])) ++i;
-  out.patch = std::stoi(s.substr(start, i - start));
+  if (!parseInt(s.substr(start, i - start), out.patch))
+    return false;
 
   // Optional prerelease.
   if (i < s.size() && s[i] == '-') {
@@ -381,7 +396,8 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
     ++pos;
   if (pos == 0)
     return false;
-  major = std::stoi(s.substr(0, pos));
+  if (!parseInt(s.substr(0, pos), major))
+    return false;
   if (pos >= s.size() || s[pos] != '.')
     return false;
   // Skip '.'
@@ -393,7 +409,8 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
     pos++;
   if (pos == start)
     return false;
-  minor = std::stoi(s.substr(start, pos - start));
+  if (!parseInt(s.substr(start, pos - start), minor))
+    return false;
   if (pos >= s.size() || s[pos] != '.')
     return false;
   // Skip '.'
@@ -405,13 +422,17 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
     ++pos;
   if (pos == start)
     return false;
-  patch = std::stoi(s.substr(start, pos - start));
+  if (!parseInt(s.substr(start, pos - start), patch))
+    return false;
 
   prerelease.clear();
   build.clear();
 
   if (pos >= s.size())
     return true;
+
+  if (s[pos] != '-' && s[pos] != '+')
+    return false;
 
   // Parse prerelease identifiers.
   if (s[pos] == '-') {
@@ -476,6 +497,9 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
       ppos = next + 1;
     }
   }
+
+  if (pos != s.size())
+    return false;
 
   return true;
 }
