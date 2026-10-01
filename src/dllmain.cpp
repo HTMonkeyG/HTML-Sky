@@ -85,9 +85,23 @@ static DWORD WINAPI onAttach(
     return 0;
 
 #ifdef HTML_ENABLE_LOGGER
-  // Log next to the DLL, before the game check, so startup and the
-  // "unsupported game" warning are both recorded.
-  std::wstring logPath = HTiUtf8ToWstring(gPathDll.c_str()) + L"\\html-log.log";
+  // Per-process log file, named after the host executable. The DLL is loaded by
+  // every process that pulls in this winhttp.dll from the game folder (the game
+  // plus helpers like crashpad_handler.exe), and they all share one folder, so
+  // a single html-log.log would be truncated and interleaved by concurrent
+  // writers. One file per executable keeps each process's log intact.
+  wchar_t exePath[MAX_PATH] = {0};
+  GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+  std::wstring exeStem = exePath;
+  size_t sep = exeStem.find_last_of(L"\\/");
+  if (sep != std::wstring::npos)
+    exeStem = exeStem.substr(sep + 1);
+  size_t dot = exeStem.find_last_of(L'.');
+  if (dot != std::wstring::npos)
+    exeStem = exeStem.substr(0, dot);
+
+  std::wstring logPath = HTiUtf8ToWstring(gPathDll.c_str())
+    + L"\\html-log-" + exeStem + L".log";
   HTiInitLogger(logPath.c_str(), 0);
 #endif
   LOGI("HTML attached.\n");
@@ -98,11 +112,9 @@ static DWORD WINAPI onAttach(
 
   if (!HTiBackendExpectProcess()) {
 #ifdef HTML_ENABLE_LOGGER
-    wchar_t exe[MAX_PATH] = {0};
-    GetModuleFileNameW(nullptr, exe, MAX_PATH);
     WLOGW(L"No supported game detected in process \"%ls\"; HTML will not "
       L"activate. If your game executable was renamed, set "
-      L"\"ht_mod_loader.target_executable\" in html-config.json.\n", exe);
+      L"\"ht_mod_loader.target_executable\" in html-config.json.\n", exePath);
 #endif
     return 0;
   }
