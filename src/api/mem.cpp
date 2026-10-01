@@ -21,6 +21,10 @@ HTMLAPIATTR LPVOID HTMLAPI HTMemAlloc(UINT64 size) {
 
 HTMLAPIATTR LPVOID HTMLAPI HTMemNew(UINT64 count, UINT64 size) {
   std::lock_guard<std::mutex> lock(gMutex);
+  // Guard against count * size wrapping around 64 bits, which would allocate a
+  // smaller block than the caller expects and lead to a heap overflow on use.
+  if (size && count > (UINT64)-1 / size)
+    return nullptr;
   void *result = HeapAlloc(gHeap, 0, count * size);
   if (result)
     gAllocated.insert(result);

@@ -127,6 +127,11 @@ static std::map<VkDevice, DeviceData> gDeviceData;
 static std::map<VkQueue, QueueData> gQueueData;
 // Mutex.
 static std::mutex gMutex;
+// Serializes overlay one-time init, per-frame rendering (renderGui) and device
+// / swapchain teardown. ImGui and gGuiStatus are single-threaded, so all of
+// these must be mutually exclusive even if the game presents from several
+// threads.
+static std::mutex gPresentMutex;
 // ImGui related data.
 static GuiStatus gGuiStatus = {0};
 
@@ -314,6 +319,12 @@ static void createRenderTargetVk(
   GuiStatus *g = &gGuiStatus;
 
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
+  // Clamp to the fixed-size `images`/`frames`/`frameSemaphores` arrays. Some
+  // drivers/present modes (e.g. mailbox, HDR) hand out more than
+  // MAX_FRAME_BUFFER images; without this clamp the second query writes past
+  // the stack buffer. The driver returns VK_INCOMPLETE, which we accept.
+  if (imageCount > MAX_FRAME_BUFFER)
+    imageCount = MAX_FRAME_BUFFER;
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, images);
 
   g->minImageCount = imageCount;
@@ -498,7 +509,7 @@ static void destroyRenderTargetVk() {
     }
   }
 
-  for (uint32_t i = 0; i < 8; i++) {
+  for (uint32_t i = 0; i < MAX_FRAME_BUFFER; i++) {
     if (g->frameSemaphores[i].ImageAcquiredSemaphore) {
       vkDestroySemaphore(
         g->device,
@@ -513,6 +524,14 @@ static void destroyRenderTargetVk() {
         g->allocator);
       g->frameSemaphores[i].RenderCompleteSemaphore = VK_NULL_HANDLE;
     }
+  }
+
+  // Destroy the render pass too. It is recreated by createRenderTargetVk on the
+  // next frame; without this, every swapchain rebuild (e.g. window resize)
+  // leaked a VkRenderPass.
+  if (g->renderPass) {
+    vkDestroyRenderPass(g->device, g->renderPass, g->allocator);
+    g->renderPass = VK_NULL_HANDLE;
   }
 }
 
@@ -581,7 +600,11 @@ static VkResult renderGui(
   VkResult result = VK_SUCCESS;
   QueueData *queueData = getQueueData(queue);
   GuiStatus *g = &gGuiStatus;
-  VkQueue graphicQueue = queueData->device->graphicQueue->queue;
+  // Start from VK_NULL_HANDLE so isGraphicQueue() below can fill this with the
+  // first graphics-capable queue. The device's recorded graphicQueue is the
+  // *last* queue created (see createQueueData), which is not necessarily a
+  // graphics queue, so it must not seed this value.
+  VkQueue graphicQueue = VK_NULL_HANDLE;
   i32 isGraphic;
 
   g->device = queueData->device->device;
@@ -590,6 +613,12 @@ static VkResult renderGui(
   for (u32 i = 0; i < pPresentInfo->swapchainCount; i++) {
     VkSwapchainKHR swapchain = pPresentInfo->pSwapchains[i];
     u32 imageIndex = pPresentInfo->pImageIndices[i];
+    // We only create render targets for the first MAX_FRAME_BUFFER swapchain
+    // images. If the game presents an image index beyond that range, forward
+    // the original present and skip the overlay for this swapchain rather than
+    // indexing past the fixed-size frame arrays.
+    if (imageIndex >= MAX_FRAME_BUFFER)
+      return queueData->device->deviceTable.QueuePresentKHR(queue, pPresentInfo);
     ImGui_ImplVulkanH_Frame *f = (ImGui_ImplVulkanH_Frame *)&g->frames[imageIndex];
     ImGui_ImplVulkanH_FrameSemaphores *fs = &g->frameSemaphores[imageIndex];
 
@@ -695,6 +724,23 @@ static VkResult renderGui(
         info.pSignalSemaphores = &fs->ImageAcquiredSemaphore;
         vkQueueSubmit(graphicQueue, 1, &info, f->Fence);
       }
+
+      // Present the image. Without this, the no-wait / non-graphic path
+      // rendered the overlay but never presented, so the swapchain image was
+      // never shown (frozen frame) and acquired semaphores piled up until
+      // vkAcquireNextImageKHR blocked. Mirror the else branch's present.
+      VkPresentInfoKHR presentInfo = *pPresentInfo;
+      presentInfo.swapchainCount = 1;
+      presentInfo.pSwapchains = &swapchain;
+      presentInfo.pImageIndices = &imageIndex;
+      presentInfo.pWaitSemaphores = &fs->ImageAcquiredSemaphore;
+      presentInfo.waitSemaphoreCount = 1;
+
+      VkResult r = queueData->device->deviceTable.QueuePresentKHR(queue, &presentInfo);
+      if (pPresentInfo->pResults)
+        pPresentInfo->pResults[i] = r;
+      if (r != VK_SUCCESS && result == VK_SUCCESS)
+        result = r;
     } else {
       static thread_local std::vector<VkPipelineStageFlags> waitStages;
       waitStages.assign(
@@ -876,6 +922,10 @@ static VKAPI_ATTR void VKAPI_CALL HT_vkDestroyDevice(
 ) {
   DeviceDispatchTable table;
 
+  // Block overlay rendering during teardown: renderGui dereferences the
+  // DeviceData we are about to erase, so it must not run concurrently.
+  std::lock_guard<std::mutex> presentLock(gPresentMutex);
+
   if (getDeviceDispatchTable(device, table) && table.DestroyDevice)
     table.DestroyDevice(device, pAllocator);
 
@@ -892,6 +942,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkCreateSwapchainKHR(
   const VkAllocationCallbacks *pAllocator,
   VkSwapchainKHR *pSwapchain
 ) {
+  // Serialize with rendering: destroyRenderTargetVk() frees frame resources
+  // that renderGui may be using, and we update the shared image extent here.
+  std::lock_guard<std::mutex> presentLock(gPresentMutex);
   destroyRenderTargetVk();
   gGuiStatus.imageExtent = pCreateInfo->imageExtent;
   DeviceDispatchTable table;
@@ -918,6 +971,11 @@ static VKAPI_ATTR VkResult VKAPI_CALL HT_vkQueuePresentKHR(
   if (!gGameStatus.window) {
     return queueTable.QueuePresentKHR(queue, pPresentInfo);
   }
+  // Serialize overlay init and rendering. The check-then-init of
+  // gGuiStatus.isInited is not atomic, so two present threads could otherwise
+  // both run initVulkan() (double instance/device, leaks), and renderGui
+  // mutates shared ImGui / gGuiStatus state that is not thread-safe.
+  std::lock_guard<std::mutex> presentLock(gPresentMutex);
   if (!gGuiStatus.isInited) {
     initVulkan();
     HTiInitGUI();
@@ -1119,7 +1177,7 @@ int HTi_ImplVkLayer_Init() {
     gPathLayerConfig,
     sizeof(gPathLayerConfig),
     "%s\\html-config.json",
-    gPathDll);
+    gPathDll.c_str());
   if (pathLen < 0 || (size_t)pathLen >= sizeof(gPathLayerConfig))
     return 0;
 

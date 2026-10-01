@@ -170,6 +170,11 @@ static HTStatus enableHook(
     if (hook == gHooks.end())
       return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
 
+    // Enforce mod isolation: a mod may only toggle hooks it owns. The
+    // HT_ALL_HOOKS branch below already filters by owner.
+    if (hook->second.owner != hModuleOwner)
+      return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
+
     s = mh((LPVOID)fn);
 
     if (s != MH_OK)

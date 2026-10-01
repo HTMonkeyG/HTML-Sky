@@ -73,13 +73,17 @@ typedef std::lock_guard<HTMutexShared> HTLockShared;
 typedef std::lock_guard<HTMutex> HTLockMutex;
 
 extern HTGameStatus gGameStatus;
-extern char gPathDll[MAX_PATH]
-  , gPathGameExe[MAX_PATH]
-  , gPathData[MAX_PATH]
-  , gPathMods[MAX_PATH]
-  , gPathGuiIni[MAX_PATH];
-extern wchar_t gPathModsWide[MAX_PATH]
-  , gPathDataWide[MAX_PATH];
+// UTF-8 encoded paths. gPathGuiIni is handed to ImGui (io.IniFilename), which
+// stores the pointer, so these globals must outlive the UI — they do, being
+// process-lifetime globals set once at init.
+extern std::string gPathDll
+  , gPathGameExe
+  , gPathData
+  , gPathMods
+  , gPathGuiIni;
+// Wide (UTF-16) paths for Win32 file APIs.
+extern std::wstring gPathModsWide
+  , gPathDataWide;
 extern HANDLE gHeap
   , gEventGuiInit
   , gInitThread;
@@ -151,16 +155,22 @@ static inline std::string HTiReadFileAsUtf8(
 ) {
   std::string buffer;
   FILE *fd = _wfopen(path.c_str(), L"rb");
-  u64 size;
+  long size;
 
   if (!fd)
     return std::string();
 
   fseek(fd, 0, SEEK_END);
   size = ftell(fd);
+  if (size < 0) {
+    // ftell failed (e.g. non-seekable handle). Avoid resizing by a wrapped-
+    // around huge value, which would attempt an enormous allocation.
+    fclose(fd);
+    return std::string();
+  }
   rewind(fd);
-  buffer.resize(size + 1);
-  fread(buffer.data(), sizeof(char), size, fd);
+  buffer.resize((size_t)size + 1);
+  fread(buffer.data(), sizeof(char), (size_t)size, fd);
   buffer[size] = 0;
   fclose(fd);
 
@@ -505,8 +515,14 @@ struct ModHook {
 extern std::map<std::string, ModManifest> gModDataLoader;
 extern std::map<HMODULE, ModRuntime> gModDataRuntime;
 extern std::unordered_map<HTHandle, HTHandleType> gHandleTypes;
-// We use a single global lock to protect all of the above structs simply.
+// We use a single global lock to protect gModDataLoader / gModDataRuntime.
 extern std::mutex gModDataLock;
+// Dedicated lock for gHandleTypes. The handle table is consulted from several
+// subsystems (api, assembly, communicate, hotkey) while they hold *different*
+// locks (or none), so it has its own lock and the HTi*Handle helpers below are
+// self-synchronizing. This lock is only ever taken by those helpers and never
+// nested with gModDataLock, so no lock-order inversion is possible.
+extern std::mutex gHandleTypesLock;
 
 // We assume that the API function has already obtained the mutex when calling
 // the following function.
@@ -526,6 +542,7 @@ static inline bool HTiRegisterHandle(
 ) {
   if (!handle)
     return false;
+  std::lock_guard<std::mutex> lock(gHandleTypesLock);
   auto it = gHandleTypes.find(handle);
   if (it != gHandleTypes.end())
     return false;
@@ -538,12 +555,23 @@ static inline bool HTiCheckHandleType(
   HTHandle handle,
   HTHandleType type
 ) {
+  std::lock_guard<std::mutex> lock(gHandleTypesLock);
   auto it = gHandleTypes.find(handle);
   if (it == gHandleTypes.end())
     return false;
   if (type == HTHandleType_Invalid)
     return true;
   return it->second == type;
+}
+
+// Unregister a single handle. Safe to call even if the handle was never
+// registered. For use when a handle-owning object is destroyed (e.g. a future
+// dynamic mod-unload path).
+static inline void HTiUnregisterHandle(
+  HTHandle handle
+) {
+  std::lock_guard<std::mutex> lock(gHandleTypesLock);
+  gHandleTypes.erase(handle);
 }
 
 static inline bool HTiIsExecutableAddr(
@@ -586,7 +614,7 @@ HTStatus HTiOptionsLoadFromFile(
 // Try to assign the loaded options for a mod's runtime data.
 void HTiOptionsLoadFor(
   ModRuntime *);
-// MaHTiBootstrapng to save options.
+// Mark the options as dirty so they get saved on the next update.
 void HTiOptionsMarkDirty();
 // Save all options to gModLoaderOptions. Called by HTiUpdateGUI().
 void HTiOptionsUpdate(
@@ -594,6 +622,9 @@ void HTiOptionsUpdate(
 // Write options to the specified file.
 void HTiOptionsWriteToFile(
   const wchar_t *);
+// Best-effort options flush for the DLL detach / process-exit path. Never
+// blocks (uses try_lock internally), safe to call from DllMain.
+void HTiOptionsFlushBestEffort();
 
 // ----------------------------------------------------------------------------
 // [SECTION] Bootstrap and setup declarations.
@@ -639,6 +670,35 @@ public:
   PFN_BackendXXExpectProcess fnExpectProcess;
   PFN_BackendXXInit fnInit;
 };
+
+// Shared "window-hook" game backend. Several game backends (Sky, MCBE, ...)
+// detect their game by hooking user32!CreateWindowExA/W and inspecting the new
+// window's title and class. Instead of each backend duplicating both hooks and
+// the setup routine, they describe themselves with this struct and call
+// HTiInstallWindowBackend(). Only one game backend is active at a time.
+typedef HTGameEdition (*PFN_HTiMatchEdition)(
+  const wchar_t *windowTitle);
+
+struct HTiWindowBackendDesc {
+  // Backend display name (HTiSetGameBackendName).
+  const char *backendName;
+  // Game executable name, used both as the process name and for the module
+  // base address lookup (GetModuleHandleA).
+  const char *exeName;
+  // Expected window class name.
+  const wchar_t *className;
+  // Maps a window title to a game edition, or HT_ImplNull_EditionUnknown when
+  // the window does not belong to this game.
+  PFN_HTiMatchEdition matchEdition;
+  // Per-backend edition compatibility check (installed via
+  // HTiBackendSetEditionCheckFunc).
+  PFN_HTVoidFunction editionCheck;
+};
+
+// Install the CreateWindowEx hooks for the given window-hook backend. Returns 1
+// on success. The descriptor must have static storage duration.
+int HTiInstallWindowBackend(
+  const HTiWindowBackendDesc *desc);
 
 // Set the name of currently active backends.
 // Backends should call these functions after it's actived.

@@ -209,12 +209,12 @@ static void saveOptionsForMod(
   const std::string &packageName
 ) {
   auto fakeRT = &gModLoaderOptions.modOptions[packageName];
-  cJSON *singleMod = cJSON_CreateObject()
-    , *keyBindings = cJSON_CreateObject()
-    , *customized = cJSON_CreateObject();
+  cJSON *singleMod = cJSON_CreateObject();
 
-  // Save key bindings.
+  // Save key bindings. The child object is created lazily so that mods without
+  // key bindings don't leak an unattached cJSON object every save.
   if (!fakeRT->keyBinds.empty()) {
+    cJSON *keyBindings = cJSON_CreateObject();
     for (auto it = fakeRT->keyBinds.begin(); it != fakeRT->keyBinds.end(); it++)
       cJSON_AddNumberToObject(
         keyBindings,
@@ -225,6 +225,7 @@ static void saveOptionsForMod(
 
   // Save customized options.
   if (!fakeRT->options.empty()) {
+    cJSON *customized = cJSON_CreateObject();
     for (auto it = fakeRT->options.begin(); it != fakeRT->options.end(); it++) {
       ModCustomOption &option = it->second;
 
@@ -258,9 +259,8 @@ static void saveOptionsForMod(
   cJSON_AddItemToObject(modOptions, packageName.c_str(), singleMod);
 }
 
-// Write all options to a JSON object.
-static cJSON *HTiOptionsWriteToMem() {
-  std::lock_guard<std::mutex> lock(gModDataLock);
+// Build the options JSON tree. Caller MUST hold gModDataLock.
+static cJSON *buildOptionsJsonLocked() {
   auto &memOptions = gModLoaderOptions.modOptions;
   cJSON *root = cJSON_CreateObject()
     , *modOptions = cJSON_CreateObject();
@@ -280,22 +280,76 @@ static cJSON *HTiOptionsWriteToMem() {
   return root;
 }
 
+// Write all options to a JSON object.
+static cJSON *HTiOptionsWriteToMem() {
+  std::lock_guard<std::mutex> lock(gModDataLock);
+  return buildOptionsJsonLocked();
+}
+
+// Serialize a prebuilt options tree to `path` atomically, consuming `root`.
+static void writeOptionsJsonToFile(
+  const wchar_t *path,
+  cJSON *root
+) {
+  if (!root)
+    return;
+
+  char *string = cJSON_Print(root);
+  cJSON_Delete(root);
+  if (!string)
+    return;
+
+  // Build the full JSON before touching the target file, then write to a
+  // temporary file and atomically swap it in. This guarantees options.json is
+  // never left truncated or half-written if serialization, allocation or the
+  // write itself fails midway (the old "wb+" opened and truncated the real
+  // file before anything was serialized).
+  size_t length = strlen(string);
+  std::wstring tempPath = std::wstring(path) + L".tmp";
+
+  FILE *fd = _wfopen(tempPath.c_str(), L"wb");
+  if (!fd) {
+    cJSON_free(string);
+    return;
+  }
+
+  bool ok = fwrite(string, sizeof(char), length, fd) == length;
+  if (ok)
+    // Flush buffered data to the OS before the rename so the swapped-in file
+    // is complete.
+    ok = (fflush(fd) == 0);
+  fclose(fd);
+  cJSON_free(string);
+
+  if (!ok || !MoveFileExW(tempPath.c_str(), path, MOVEFILE_REPLACE_EXISTING)) {
+    _wremove(tempPath.c_str());
+    return;
+  }
+
+  LOGI("Options saved to %ls\n", path);
+}
+
 // Write options to `options.json`.
 void HTiOptionsWriteToFile(
   const wchar_t *path
 ) {
-  FILE *fd = _wfopen(path, L"wb+");
-  if (!fd)
-    return;
-  cJSON *json = HTiOptionsWriteToMem();
+  writeOptionsJsonToFile(path, HTiOptionsWriteToMem());
+}
 
-  const char *string = cJSON_Print(json);
-  if (string)
-    fwrite(string, sizeof(char), strlen(string), fd);
+// Best-effort options flush for the process-exit / unload path. Uses try_lock
+// so it can never deadlock on a lock still held by a thread terminated during
+// ExitProcess; if the lock is unavailable it simply skips (the periodic
+// autosave will usually have persisted recent changes already).
+void HTiOptionsFlushBestEffort() {
+  cJSON *root;
+  {
+    std::unique_lock<std::mutex> lock(gModDataLock, std::try_to_lock);
+    if (!lock.owns_lock())
+      return;
+    root = buildOptionsJsonLocked();
+  }
 
-  cJSON_Delete(json);
-  cJSON_free((void *)string);
-  fclose(fd);
-
-  LOGI("Options saved to %ls\n", path);
+  std::wstring path(gPathDataWide);
+  path += L"\\options.json";
+  writeOptionsJsonToFile(path.c_str(), root);
 }

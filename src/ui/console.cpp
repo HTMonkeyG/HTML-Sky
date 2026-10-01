@@ -34,9 +34,10 @@ static bool gScrollEnd = false;
 static f32 gLastTextHeight = 0;
 
 static struct {
-  char *line;
+  std::string line;
   bool raw;
-} gLastLine = {0};
+  bool valid;
+} gLastLine = {};
 
 static bool checkColorMark(std::vector<ConsoleChar> &charBuf) {
   // The byte sequence of '§'.
@@ -287,8 +288,8 @@ void HTiRenderConsoleTexts() {
     if (line.repeatCount > 1) {
       // Show the repeat count.
       lineBuffer.resize(20);
-      i32 len = sprintf(lineBuffer.data(), "(x%d) ", line.repeatCount);
-      lineBuffer.resize(len);
+      i32 len = snprintf(lineBuffer.data(), lineBuffer.size(), "(x%d) ", line.repeatCount);
+      lineBuffer.resize(len > 0 ? len : 0);
     }
 
     for (u64 j = 0; j < line.s.size(); ) {
@@ -360,55 +361,50 @@ void HTiAddConsoleLineV(
   const char *fmt,
   va_list args
 ) {
+  if (!fmt)
+    return;
+
   std::unique_lock<std::shared_mutex> lock(gMutex);
 
   va_list argDup;
-  char *buffer;
-  size_t len;
-  bool repeated = false;
+  int len;
 
   va_copy(argDup, args);
 
+  // vsnprintf returns a signed int; a negative value signals an encoding error
+  // (e.g. a bad wide-char conversion in the format string). Keeping it signed
+  // avoids wrapping a -1 into a huge size_t.
   len = vsnprintf(nullptr, 0, fmt, args);
   if (len <= 0) {
     va_end(argDup);
     return;
   }
 
-  buffer = (char *)ImGui::MemAlloc(len + 1);
-  if (!buffer) {
-    va_end(argDup);
-    return;
-  }
-
-  vsnprintf(buffer, len + 1, fmt, argDup);
+  std::string buffer;
+  buffer.resize((size_t)len);
+  // Writing the terminating '\0' into buffer[len] (the string's own null slot)
+  // is well-defined since C++11.
+  vsnprintf(buffer.data(), (size_t)len + 1, fmt, argDup);
   va_end(argDup);
-  buffer[len] = 0;
 
   if (gText.size() >= CONSOLE_MAX_LINE)
     // Remove the earliest line if the maximum number of lines is reached.
     gText.erase(gText.begin());
 
-  if (!gLastLine.line) {
-    // If the console is empty, save current line as the last line.
-    gLastLine.line = buffer;
-    textFormatInto(buffer, 0xFFFFFFFF, raw);
-  } else if (!strcmp(gLastLine.line, buffer) && gLastLine.raw == raw) {
-    // Repeated line, free current buffer and increase repeat count.
+  if (gLastLine.valid && gLastLine.line == buffer && gLastLine.raw == raw) {
+    // Repeated line: just bump the repeat count, don't scroll.
     if (!gText.empty())
       gText.back().repeatCount++;
-    ImGui::MemFree(buffer);
-    repeated = true;
-  } else {
-    // Free the old line and add our new line.
-    ImGui::MemFree(gLastLine.line);
-    textFormatInto(buffer, 0xFFFFFFFF, raw);
-    gLastLine.line = buffer;
+    return;
   }
 
-  if (!repeated)
-    // Scroll to the end only when new line was actually added.
-    HTiConsoleScrollEnd();
+  textFormatInto(buffer.c_str(), 0xFFFFFFFF, raw);
+  gLastLine.line = std::move(buffer);
+  gLastLine.raw = raw;
+  gLastLine.valid = true;
+
+  // Scroll to the end only when a new line was actually added.
+  HTiConsoleScrollEnd();
 }
 
 void HTiAddConsoleLine(
@@ -427,10 +423,8 @@ void HTiClearConsole() {
   std::unique_lock<std::shared_mutex> lock(gMutex);
 
   gText.clear();
-
-  if (gLastLine.line)
-    ImGui::MemFree(gLastLine.line);
-  gLastLine.line = nullptr;
+  gLastLine.line.clear();
+  gLastLine.valid = false;
 
   HTiConsoleScrollEnd();
 }

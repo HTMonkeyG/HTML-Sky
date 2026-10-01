@@ -22,12 +22,19 @@ static i32 *sigToPattern(
   l = strlen(sig);
   if (l <= 1)
     return nullptr;
-  
-  // We can ensure that (l >> 1) is larger than the actual signature array.
+
+  // Each parsed entry consumes at least one character of the signature, so
+  // (l) entries is always enough to hold the result.
   pattern = (i32 *)malloc(l * sizeof(i32));
+  if (!pattern)
+    return nullptr;
   p = sig;
 
-  for (i = 0; p < (sig + l); p++) {
+  // The `i < l` bound is a defensive guard: every branch below advances `p` by
+  // at least one character, so `i` can never actually reach `l`, but keeping
+  // the explicit bound prevents an out-of-bounds write should that invariant
+  // ever be broken.
+  for (i = 0; p < (sig + l) && i < l; p++) {
     if (*p == '?') {
       // Wildcard characters.
       p++;
@@ -39,6 +46,13 @@ static i32 *sigToPattern(
       continue;
     else {
       pattern[i] = strtoul(p, &q, 16);
+      if (q == p) {
+        // strtoul consumed nothing: the signature contains an invalid byte.
+        // Bail out instead of spinning forever (p would never advance) and
+        // writing past the pattern buffer.
+        free(pattern);
+        return nullptr;
+      }
       p = q;
       i++;
     }
@@ -133,27 +147,31 @@ static void *sigScanE8(
   const char *sig,
   i32 offset
 ) {
-  u08 *initial = (u08 *)sigScan(moduleName, sig, 0)
-    , *result
-    , opCode;
+  u08 *initial = (u08 *)sigScan(moduleName, sig, 0);
+  u08 bytes[5];
+  SIZE_T len;
   i32 rel;
 
   if (!initial)
     return nullptr;
 
-  opCode = *(initial + offset);
-  if (opCode == 0xE8 || opCode == 0xE9) {
-    // Calculate offset.
-    result = initial + offset + 5;
-    rel = *(initial + offset + 1)
-      | (*(initial + offset + 2) << 8)
-      | (*(initial + offset + 3) << 16)
-      | (*(initial + offset + 4) << 24);
-    result += rel;
-  } else
+  // `offset` is caller-controlled and may point near the end of a committed
+  // region, so read the 5-byte E8/E9 rel32 instruction through
+  // ReadProcessMemory instead of dereferencing raw pointers.
+  if (!ReadProcessMemory(
+        GetCurrentProcess(), initial + offset, bytes, sizeof(bytes), &len)
+      || len != sizeof(bytes))
     return nullptr;
 
-  return (void *)result;
+  if (bytes[0] != 0xE8 && bytes[0] != 0xE9)
+    return nullptr;
+
+  rel = bytes[1]
+    | (bytes[2] << 8)
+    | (bytes[3] << 16)
+    | (bytes[4] << 24);
+
+  return (void *)(initial + offset + 5 + rel);
 }
 
 /**
@@ -166,25 +184,28 @@ static void *sigScanFF15(
   i32 offset
 ) {
   u08 *initial = (u08 *)sigScan(moduleName, sig, 0)
-    , *ptr, *result
-    , opCode;
+    , *ptr, *result;
+  u08 bytes[5];
   i32 rel;
-  u64 len;
+  SIZE_T len;
 
   if (!initial)
     return nullptr;
 
-  opCode = *(initial + offset);
-  if (opCode == 0x15 || opCode == 0x25) {
-    // Calculate offset.
-    ptr = initial + offset + 5;
-    rel = *(initial + offset + 1)
-      | (*(initial + offset + 2) << 8)
-      | (*(initial + offset + 3) << 16)
-      | (*(initial + offset + 4) << 24);
-    ptr += rel;
-  } else
+  // Safely read the FF15/FF25 rel32 operand (see sigScanE8 for rationale).
+  if (!ReadProcessMemory(
+        GetCurrentProcess(), initial + offset, bytes, sizeof(bytes), &len)
+      || len != sizeof(bytes))
     return nullptr;
+
+  if (bytes[0] != 0x15 && bytes[0] != 0x25)
+    return nullptr;
+
+  rel = bytes[1]
+    | (bytes[2] << 8)
+    | (bytes[3] << 16)
+    | (bytes[4] << 24);
+  ptr = initial + offset + 5 + rel;
 
   if (
     !ReadProcessMemory(
@@ -250,7 +271,7 @@ HTMLAPIATTR void *HTMLAPI HTSigScanFunc(
   const HTAsmSig *signature,
   HTAsmFunction *func
 ) {
-  if (!signature)
+  if (!signature || !func)
     return nullptr;
 
   func->fn = HTSigScan(signature);

@@ -92,15 +92,20 @@ HTMLAPIATTR HTStatus HTMLAPI HTDataStore(
 
   if (!hModule || !key || !keyLen || (!value && valueLen))
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  if (!gReadOptions || !gLevelDB)
+  if (!gWriteOptions || !gLevelDB)
     return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
 
-  rt = HTiGetModRuntime(hModule);
-  if (!rt)
-    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
-
-  std::string &modName = rt->manifest->meta.packageName;
-  std::string fullKey = concatModDataKey(modName, key, keyLen);
+  // Hold gModDataLock only while touching the mod runtime, then copy out the
+  // key so the (potentially slow) LevelDB write runs without the lock. The old
+  // code read rt->manifest->meta.packageName with no lock, racing mod load.
+  std::string fullKey;
+  {
+    std::lock_guard<std::mutex> lock(gModDataLock);
+    rt = HTiGetModRuntime(hModule);
+    if (!rt)
+      return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
+    fullKey = concatModDataKey(rt->manifest->meta.packageName, key, keyLen);
+  }
 
   leveldb_put(
     gLevelDB,
@@ -135,12 +140,15 @@ HTMLAPIATTR LPSTR HTMLAPI HTDataGet(
   if (!gReadOptions || !gLevelDB)
     return HTiErrAndRet(HTError_AccessDenied, nullptr);
 
-  rt = HTiGetModRuntime(hModule);
-  if (!rt)
-    return HTiErrAndRet(HTError_InvalidHandle, nullptr);
-  
-  std::string &modName = rt->manifest->meta.packageName;
-  std::string fullKey = concatModDataKey(modName, key, keyLen);
+  // Copy the key out under gModDataLock, then run the LevelDB read unlocked.
+  std::string fullKey;
+  {
+    std::lock_guard<std::mutex> lock(gModDataLock);
+    rt = HTiGetModRuntime(hModule);
+    if (!rt)
+      return HTiErrAndRet(HTError_InvalidHandle, nullptr);
+    fullKey = concatModDataKey(rt->manifest->meta.packageName, key, keyLen);
+  }
 
   result = leveldb_get(
     gLevelDB,

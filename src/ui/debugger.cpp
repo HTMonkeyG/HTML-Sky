@@ -32,7 +32,8 @@ static void renderMods() {
     auto &mod = it.second;
 
     ImGui::Separator();
-    ImGui::Text(it.first.c_str());
+    // Package name is mod-controlled; never pass it as a format string.
+    ImGui::TextUnformatted(it.first.c_str());
     ImGui::BulletText("Dll folder: %ls", mod.paths.folder.c_str());
     ImGui::BulletText("Dll path: %ls", mod.paths.dll.c_str());
     ImGui::BulletText("Version: %s", mod.meta.version.write().c_str());
@@ -64,7 +65,8 @@ static void renderHooks() {
 
     for (auto &hook: hooks) {
       ImGui::Separator();
-      ImGui::Text(hook->name.c_str());
+      // Hook name is mod-controlled; never pass it as a format string.
+      ImGui::TextUnformatted(hook->name.c_str());
       ImGui::BulletText("Addr: 0x%p", hook->intent);
       ImGui::BulletText("Detour: 0x%p", hook->detour);
       ImGui::BulletText("Status: %s", hook->isEnabled ? "<ENABLED>" : "<DISABLED>");

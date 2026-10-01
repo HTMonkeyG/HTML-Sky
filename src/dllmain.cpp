@@ -48,33 +48,25 @@ static i32 initPaths(
   std::wstring gameDir = gamePath.substr(0, gameSep);
   std::wstring dataDir = gameDir + L"\\htmodloader";
   std::wstring modsDir = dataDir + L"\\mods";
-  if (dllDir.size() >= MAX_PATH || gameDir.size() >= MAX_PATH
-      || dataDir.size() >= MAX_PATH || modsDir.size() >= MAX_PATH)
-    return 0;
 
-  wcsncpy_s(gPathDataWide, MAX_PATH, dataDir.c_str(), _TRUNCATE);
-  wcsncpy_s(gPathModsWide, MAX_PATH, modsDir.c_str(), _TRUNCATE);
-  if (WideCharToMultiByte(CP_UTF8, 0, dllDir.c_str(), -1,
-      gPathDll, MAX_PATH, nullptr, nullptr) <= 0
-      || WideCharToMultiByte(CP_UTF8, 0, gameDir.c_str(), -1,
-      gPathGameExe, MAX_PATH, nullptr, nullptr) <= 0
-      || WideCharToMultiByte(CP_UTF8, 0, dataDir.c_str(), -1,
-      gPathData, MAX_PATH, nullptr, nullptr) <= 0
-      || WideCharToMultiByte(CP_UTF8, 0, modsDir.c_str(), -1,
-      gPathMods, MAX_PATH, nullptr, nullptr) <= 0)
-    return 0;
+  // Paths are std::string / std::wstring now, so there is no fixed-buffer
+  // truncation to guard against.
+  gPathDataWide = dataDir;
+  gPathModsWide = modsDir;
+  gPathDll = HTiWstringToUtf8(dllDir.c_str());
+  gPathGameExe = HTiWstringToUtf8(gameDir.c_str());
+  gPathData = HTiWstringToUtf8(dataDir.c_str());
+  gPathMods = HTiWstringToUtf8(modsDir.c_str());
 
   // Create mod data folders.
-  if (!HTiFolderExists(gPathDataWide))
-    CreateDirectoryW(gPathDataWide, nullptr);
-  if (!HTiFolderExists(gPathModsWide))
-    CreateDirectoryW(gPathModsWide, nullptr);
+  if (!HTiFolderExists(gPathDataWide.c_str()))
+    CreateDirectoryW(gPathDataWide.c_str(), nullptr);
+  if (!HTiFolderExists(gPathModsWide.c_str()))
+    CreateDirectoryW(gPathModsWide.c_str(), nullptr);
 
   // ImGui uses UTF-8 codepage in paths, so we need the conversion below.
   std::wstring guiPath = dataDir + L"\\htmlgui.ini";
-  if (guiPath.size() >= MAX_PATH)
-    return 0;
-  wcstoutf8(guiPath.c_str(), gPathGuiIni, MAX_PATH);
+  gPathGuiIni = HTiWstringToUtf8(guiPath.c_str());
 
   return 1;
 }
@@ -136,13 +128,23 @@ BOOL APIENTRY DllMain(
     if (gEventGuiInit)
       SetEvent(gEventGuiInit);
 
+    // Persist options on ANY detach, including normal process exit (where
+    // lpReserved != NULL and we return early below). This is best-effort and
+    // never blocks, so it is safe even here in DllMain: the previous code only
+    // saved on the rarely-taken dynamic-unload path, silently dropping the
+    // last changes on a normal game shutdown.
+    if (gLoaderInitialized.load())
+      HTiOptionsFlushBestEffort();
+
     if (lpReserved)
       return TRUE;
 
-    // Forcely update all options.
+    // Dynamic FreeLibrary unload only (lpReserved == NULL). Note: MinHook's
+    // uninitialize suspends other threads, which is a loader-lock hazard in
+    // DllMain; this path is essentially never taken for a winhttp proxy (the
+    // game holds the DLL for its whole lifetime), so it is left as-is.
     if (gLoaderInitialized.load() && gInitThread
         && WaitForSingleObject(gInitThread, 0) == WAIT_OBJECT_0) {
-      HTiOptionsUpdate(114514.1919810f);
       HTiDeinitLDB();
       MH_DisableHook(MH_ALL_HOOKS);
       MH_Uninitialize();

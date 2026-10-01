@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cwctype>
 
 #include "htinternal.hpp"
 
@@ -38,7 +39,7 @@ static std::wstring toLowerCase(
   result.resize(s.size());
 
   for (size_t i = 0; i < s.size(); i++)
-    result[i] = std::tolower(s[i]);
+    result[i] = towlower(s[i]);
 
   return result;
 }
@@ -161,7 +162,7 @@ static bool isWin32ReservedName(
 
   auto devicePart = path.substr(0, colonIndex);
   for (size_t i = 0; i < devicePart.size(); i++)
-    devicePart[i] = std::toupper(devicePart[i]);
+    devicePart[i] = towupper(devicePart[i]);
 
   for (int i = 0; WINDOWS_RESERVED_NAMES[i]; i++) {
     if (devicePart == WINDOWS_RESERVED_NAMES[i])

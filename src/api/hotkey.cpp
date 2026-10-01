@@ -11,7 +11,10 @@
 #define HOTKEY_MODIFY_COOLDOWN 5
 
 static std::map<HTKeyCode, std::set<ModKeyBind *>> gHotkeyCallbacks;
-static i32 gKeyModifyCooldown = 0;
+// Written on the render thread (set/update cooldown) and read on the window
+// message thread (dispatch / pressed). Atomic to avoid a data race when those
+// run on different threads.
+static std::atomic<i32> gKeyModifyCooldown{0};
 
 /**
  * Dispatch a key event to all related callbacks.

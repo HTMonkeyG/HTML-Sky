@@ -276,7 +276,7 @@ static void HTHotKeyWndProc(
         HTiHotkeyDispatch(key, HTKeyEventFlags_Down | repeat | blockedKey, blocked);
       else if (vk == VK_SHIFT) {
         HTHotkeyCheck(VK_LSHIFT, HTKey_LeftShift);
-        HTHotkeyCheck(VK_LSHIFT, HTKey_LeftShift);
+        HTHotkeyCheck(VK_RSHIFT, HTKey_RightShift);
       } else if (vk == VK_CONTROL) {
         HTHotkeyCheck(VK_LCONTROL, HTKey_LeftCtrl);
         HTHotkeyCheck(VK_RCONTROL, HTKey_RightCtrl);

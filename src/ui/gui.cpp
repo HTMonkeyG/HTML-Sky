@@ -36,7 +36,9 @@ void HTiInitGUI() {
   // after calling HTiInitGUI().
   ImGuiIO &io = ImGui::GetIO();
   ImGuiStyle &style = ImGui::GetStyle();
-  io.IniFilename = gPathGuiIni;
+  // gPathGuiIni is a process-lifetime global set once at init; ImGui keeps
+  // this pointer, so c_str() stays valid.
+  io.IniFilename = gPathGuiIni.c_str();
   io.LogFilename = nullptr;
 
   // Scale the window by dpi.

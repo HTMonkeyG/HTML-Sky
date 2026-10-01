@@ -87,7 +87,9 @@ static void showSingleKeyBind(
 
   // Show key display name.
   ImGui::AlignTextToFramePadding();
-  ImGui::Text(kb->displayName.c_str());
+  // Use TextUnformatted: the name comes from the mod and must not be treated
+  // as a printf format string.
+  ImGui::TextUnformatted(kb->displayName.c_str());
   ImGui::SameLine();
 
   // Calculate the max pos X of all the texts, for a better align.
@@ -169,7 +171,6 @@ static int inputCallback(ImGuiInputTextCallbackData *data) {
 }
 
 void HTiMenuConsole() {
-  ImGuiListClipper clipper;
   f32 height;
   bool reclaimFocus = false;
 

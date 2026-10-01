@@ -48,7 +48,7 @@ HTMLAPIATTR VOID HTMLAPI HTGetGameExeFolder(
 ) {
   if (!result)
     return;
-  strcpy_s(result, maxLen, gPathGameExe);
+  strcpy_s(result, maxLen, gPathGameExe.c_str());
 }
 
 HTMLAPIATTR VOID HTMLAPI HTGetModFolder(
@@ -57,7 +57,7 @@ HTMLAPIATTR VOID HTMLAPI HTGetModFolder(
 ) {
   if (!result)
     return;
-  strcpy_s(result, maxLen, gPathMods);
+  strcpy_s(result, maxLen, gPathMods.c_str());
 }
 
 HTMLAPIATTR HMODULE HTMLAPI HTGetModuleHandle(
@@ -214,8 +214,10 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionGetCustom(
         // Returns the required byte count in `cch`.
         *cch = option.valueString.length() + 1;
       else if (data && !cch)
-        // Copy the entire string.
-        strcpy((char *)data, option.valueString.c_str());
+        // Without `cch` there is no capacity to bound the copy against, so an
+        // arbitrarily long stored string would overflow the caller's buffer.
+        // Reject this combination instead of doing an unbounded strcpy.
+        return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
       else if (data && cch) {
         UINT32 capacity = *cch;
         UINT32 required = (UINT32)option.valueString.length() + 1;
