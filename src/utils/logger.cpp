@@ -5,6 +5,8 @@
 #include <string>
 #include "htinternal.hpp"
 
+// Dedicated log file handle. We write here instead of reopening the host
+// process's stdout, so logging never disturbs the game's own output.
 static FILE *gLogFile = NULL;
 
 #ifdef HTML_ENABLE_LOGGER
@@ -14,7 +16,8 @@ static std::mutex gLogMutex;
 static void writeTimestamp() {
   SYSTEMTIME time = {0};
   GetLocalTime(&time);
-  printf(
+  fprintf(
+    gLogFile,
     "[%04d-%02d-%02d %02d:%02d:%02d.%03d]",
     time.wYear,
     time.wMonth,
@@ -30,42 +33,49 @@ static void writeTimestamp() {
 /**
  * Initialize the logger.
  *
- * Must be called EXACTLY ONCE when the dll is attached.
+ * Must be called EXACTLY ONCE when the dll is attached. When `fileName` is set
+ * the log is written to that file; otherwise, when `allocConsole` is set, a
+ * console is attached and used instead.
  */
 void HTiInitLogger(
   const wchar_t *fileName,
   i08 allocConsole
 ) {
   if (fileName) {
-    gLogFile = _wfreopen(fileName, L"w+t", stdout);
-    setvbuf(stdout, NULL, _IONBF, 2);
+    gLogFile = _wfopen(fileName, L"w");
+    if (gLogFile)
+      // Unbuffered, so lines survive an abrupt crash.
+      setvbuf(gLogFile, NULL, _IONBF, 0);
   } else if (allocConsole) {
     FreeConsole();
     AllocConsole();
-    freopen("CONOUT$", "w+t", stdout);
+    gLogFile = freopen("CONOUT$", "w", stdout);
   }
 }
 
 void HTiLogA(const char *format, ...) {
 #ifdef HTML_ENABLE_LOGGER
-  va_list arg;
+  if (!gLogFile)
+    return;
 
+  va_list arg;
   va_start(arg, format);
   std::lock_guard<std::mutex> lock(gLogMutex);
   writeTimestamp();
-  vprintf(format, arg);
+  vfprintf(gLogFile, format, arg);
   va_end(arg);
 #endif
 }
 
 void HTiLogW(const wchar_t *format, ...) {
 #ifdef HTML_ENABLE_LOGGER
-  va_list arg;
+  if (!gLogFile)
+    return;
 
+  va_list arg;
   va_start(arg, format);
-  // Format into a wide buffer, then convert to UTF-8 and emit through the byte
-  // stream. stdout is byte-oriented (HTiLogA uses printf); mixing wprintf on
-  // the same stream is undefined behavior, so never write wchar_t directly.
+  // Format into a wide buffer, then convert to UTF-8 and emit as bytes. The log
+  // file is byte-oriented; never write wchar_t to it directly.
   int wlen = _vscwprintf(format, arg);
   if (wlen < 0) {
     va_end(arg);
@@ -81,6 +91,6 @@ void HTiLogW(const wchar_t *format, ...) {
 
   std::lock_guard<std::mutex> lock(gLogMutex);
   writeTimestamp();
-  fputs(utf8.c_str(), stdout);
+  fputs(utf8.c_str(), gLogFile);
 #endif
 }

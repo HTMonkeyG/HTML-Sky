@@ -40,7 +40,7 @@ static HTGameEdition matchEdition(
 }
 
 int HTi_ImplMCBE_ExpectProcess() {
-  return !!GetModuleHandleA(HT_ImplMCBE_ExecutableName);
+  return !!HTiResolveGameModule(HT_ImplMCBE_ExecutableName);
 }
 
 /**

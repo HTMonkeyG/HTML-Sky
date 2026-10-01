@@ -34,3 +34,7 @@ HANDLE gEventGuiInit = NULL;
 HANDLE gInitThread = NULL;
 std::atomic<bool> gLoaderShuttingDown{false};
 std::atomic<bool> gLoaderInitialized{false};
+
+// Loader config read from html-config.json's "ht_mod_loader" section.
+std::string gConfigTargetExe;
+std::string gConfigForceBackend;

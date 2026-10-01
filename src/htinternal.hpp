@@ -91,6 +91,19 @@ extern HMODULE gModLoaderHandle;
 extern std::atomic<bool> gLoaderShuttingDown;
 extern std::atomic<bool> gLoaderInitialized;
 
+// Loader config, read from html-config.json's "ht_mod_loader" section.
+// gConfigTargetExe: overrides the game executable name used for detection
+//   (e.g. a renamed "Sky-test.exe"). Empty = use backend defaults.
+// gConfigForceBackend: force a specific backend by name (e.g. "Impl_Sky").
+//   Empty = auto-detect.
+extern std::string gConfigTargetExe;
+extern std::string gConfigForceBackend;
+
+// Read and apply html-config.json's "ht_mod_loader" section. Creates the file
+// from the default template if it does not exist. Call after initPaths and
+// before HTiBackendExpectProcess().
+void HTiLoadLoaderConfig();
+
 // ----------------------------------------------------------------------------
 // [SECTION] Codepage, file and path.
 // ----------------------------------------------------------------------------
@@ -699,6 +712,13 @@ struct HTiWindowBackendDesc {
 // on success. The descriptor must have static storage duration.
 int HTiInstallWindowBackend(
   const HTiWindowBackendDesc *desc);
+
+// Resolve the game executable's module handle, honoring the html-config.json
+// `target_executable` override (gConfigTargetExe) when set, falling back to
+// `defaultExe`. Used by game backends for both process detection and base
+// address lookup so a renamed executable is still found.
+HMODULE HTiResolveGameModule(
+  const char *defaultExe);
 
 // Set the name of currently active backends.
 // Backends should call these functions after it's actived.

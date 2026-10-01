@@ -45,8 +45,10 @@
 // OpenGL3.
 //#define HTML_USE_IMPL_OPENGL3
 
-// Enable the logger.
-//#define HTML_ENABLE_LOGGER
+// Enable the logger. On by default: HTML writes html-log.log next to the DLL
+// (gPathDll) and records startup, "unsupported game" warnings, mod loading and
+// backend events. Comment this out to compile all logging to no-ops.
+#define HTML_ENABLE_LOGGER
 
 // Compile the debugger.
 #define HTML_ENABLE_DEBUGGER

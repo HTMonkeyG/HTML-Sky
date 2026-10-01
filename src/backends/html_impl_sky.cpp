@@ -43,7 +43,7 @@ static HTGameEdition matchEdition(
 }
 
 int HTi_ImplSky_ExpectProcess() {
-  return !!GetModuleHandleA(HT_ImplSky_ExecutableName);
+  return !!HTiResolveGameModule(HT_ImplSky_ExecutableName);
 }
 
 /**

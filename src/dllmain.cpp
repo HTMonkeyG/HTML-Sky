@@ -58,12 +58,6 @@ static i32 initPaths(
   gPathData = HTiWstringToUtf8(dataDir.c_str());
   gPathMods = HTiWstringToUtf8(modsDir.c_str());
 
-  // Create mod data folders.
-  if (!HTiFolderExists(gPathDataWide.c_str()))
-    CreateDirectoryW(gPathDataWide.c_str(), nullptr);
-  if (!HTiFolderExists(gPathModsWide.c_str()))
-    CreateDirectoryW(gPathModsWide.c_str(), nullptr);
-
   // ImGui uses UTF-8 codepage in paths, so we need the conversion below.
   std::wstring guiPath = dataDir + L"\\htmlgui.ini";
   gPathGuiIni = HTiWstringToUtf8(guiPath.c_str());
@@ -71,18 +65,51 @@ static i32 initPaths(
   return 1;
 }
 
+// Create the htmodloader data folders. Only done once a supported game has been
+// confirmed, so we never scatter folders into unrelated processes' directories.
+static void ensureDataFolders() {
+  if (!HTiFolderExists(gPathDataWide.c_str()))
+    CreateDirectoryW(gPathDataWide.c_str(), nullptr);
+  if (!HTiFolderExists(gPathModsWide.c_str()))
+    CreateDirectoryW(gPathModsWide.c_str(), nullptr);
+}
+
 static DWORD WINAPI onAttach(
   LPVOID lpParam
 ) {
   HMODULE hModule = (HMODULE)lpParam;
 
-  if (!HTiBackendExpectProcess() || !initPaths(hModule))
+  // Derive paths first: we need them to know where to write the log and where
+  // html-config.json lives.
+  if (!initPaths(hModule))
     return 0;
 
 #ifdef HTML_ENABLE_LOGGER
-  HTiInitLogger(L"html-log.log", 0);
+  // Log next to the DLL, before the game check, so startup and the
+  // "unsupported game" warning are both recorded.
+  std::wstring logPath = HTiUtf8ToWstring(gPathDll.c_str()) + L"\\html-log.log";
+  HTiInitLogger(logPath.c_str(), 0);
 #endif
   LOGI("HTML attached.\n");
+
+  // Apply html-config.json overrides (target executable / forced backend)
+  // before deciding whether this process hosts a supported game.
+  HTiLoadLoaderConfig();
+
+  if (!HTiBackendExpectProcess()) {
+#ifdef HTML_ENABLE_LOGGER
+    wchar_t exe[MAX_PATH] = {0};
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    WLOGW(L"No supported game detected in process \"%ls\"; HTML will not "
+      L"activate. If your game executable was renamed, set "
+      L"\"ht_mod_loader.target_executable\" in html-config.json.\n", exe);
+#endif
+    return 0;
+  }
+
+  // Supported game confirmed: create the data folders now (never for unrelated
+  // processes).
+  ensureDataFolders();
 
   if (MH_Initialize() != MH_OK)
     return 0;

@@ -52,7 +52,7 @@ static i32 checkWindowAndSetup(
     return 0;
 
   // Set game edition and hWnd.
-  status.baseAddr = (void *)GetModuleHandleA(desc->exeName);
+  status.baseAddr = (void *)HTiResolveGameModule(desc->exeName);
   status.edition = edition;
   status.pid = GetCurrentProcessId();
   status.window = hWnd;

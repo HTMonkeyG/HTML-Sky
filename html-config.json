@@ -14,5 +14,9 @@
     "disable_environment": {
       "DISABLE_HT_MOD_LOADER": "1"
     }
+  },
+  "ht_mod_loader": {
+    "target_executable": "",
+    "backend": ""
   }
 }

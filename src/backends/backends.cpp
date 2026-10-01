@@ -104,11 +104,31 @@ int HTiSetGameProcessName(
 int HTiBackendExpectProcess() {
   int success = 0;
 
-  for (const HTiBackendRegister *p = HTiBackendRegister::list(); p; p = p->prev)
-    if (p->fnExpectProcess)
-      success |= p->fnExpectProcess();
+  for (const HTiBackendRegister *p = HTiBackendRegister::list(); p; p = p->prev) {
+    if (!p->fnExpectProcess)
+      continue;
+    // When a backend is forced via html-config.json, only consider that one.
+    if (!gConfigForceBackend.empty()
+        && (!p->name || gConfigForceBackend != p->name))
+      continue;
+    success |= p->fnExpectProcess();
+  }
 
   return success;
+}
+
+HMODULE HTiResolveGameModule(
+  const char *defaultExe
+) {
+  // Prefer the configured target executable (e.g. a renamed "Sky-test.exe")
+  // when present and currently loaded, otherwise fall back to the backend's
+  // default executable name.
+  if (!gConfigTargetExe.empty()) {
+    HMODULE h = GetModuleHandleA(gConfigTargetExe.c_str());
+    if (h)
+      return h;
+  }
+  return defaultExe ? GetModuleHandleA(defaultExe) : nullptr;
 }
 
 int HTiBackendSetupAll() {
