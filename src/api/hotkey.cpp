@@ -4,7 +4,7 @@
 #include <string>
 #include "imgui.h"
 #include "utils/texts.h"
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 #include "htinternal.hpp"
 
 // Cooldown timer in frames.

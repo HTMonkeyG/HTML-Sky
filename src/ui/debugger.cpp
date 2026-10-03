@@ -2,7 +2,7 @@
 // Debugging data display of HTModLoader.
 // ----------------------------------------------------------------------------
 
-#include "includes/htconfig.h"
+#include "htmodloader/htconfig.h"
 #include "htinternal.hpp"
 
 #ifdef HTML_ENABLE_DEBUGGER

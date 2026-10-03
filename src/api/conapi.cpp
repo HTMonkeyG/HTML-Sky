@@ -1,6 +1,6 @@
 #include <stdarg.h>
 
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 #include "htinternal.hpp"
 
 HTMLAPIATTR HTStatus HTMLAPI HTTellText(

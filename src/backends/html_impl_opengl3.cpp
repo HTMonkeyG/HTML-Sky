@@ -8,8 +8,8 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_opengl3.h"
 
-#include "includes/backends/html_impl_opengl3.h"
-#include "includes/htconfig.h"
+#include "htmodloader/backends/html_impl_opengl3.h"
+#include "htmodloader/htconfig.h"
 #include "htinternal.hpp"
 
 #ifdef HTML_USE_IMPL_OPENGL3

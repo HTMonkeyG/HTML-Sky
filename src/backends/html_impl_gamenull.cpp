@@ -6,7 +6,7 @@
 // ----------------------------------------------------------------------------
 
 #include "htinternal.hpp"
-#include "includes/htconfig.h"
+#include "htmodloader/htconfig.h"
 
 //#ifdef USE_IMPL_NULLGAME
 #if 0

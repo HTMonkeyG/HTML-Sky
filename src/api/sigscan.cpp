@@ -5,7 +5,7 @@
 
 #include "htaliases.h"
 #include "htinternal.hpp"
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 
 /**
  * Convert signature string to byte pattern.
