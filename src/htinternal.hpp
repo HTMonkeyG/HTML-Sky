@@ -13,8 +13,8 @@
 #include "imgui.h"
 #include "cJSON.h"
 
-#include "includes/htmodloader.h"
-#include "includes/htconfig.h"
+#include "htmodloader/htmodloader.h"
+#include "htmodloader/htconfig.h"
 #include "htaliases.h"
 
 // ----------------------------------------------------------------------------

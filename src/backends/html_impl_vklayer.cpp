@@ -20,9 +20,9 @@
 #include <vector>
 #include <map>
 
-#include "includes/backends/html_impl_vklayer.h"
+#include "htmodloader/backends/html_impl_vklayer.h"
 #include "htinternal.hpp"
-#include "includes/htconfig.h"
+#include "htmodloader/htconfig.h"
 
 #ifdef HTML_USE_IMPL_VKLAYER
 

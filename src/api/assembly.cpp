@@ -6,7 +6,7 @@
 #include <shared_mutex>
 #include "MinHook.h"
 
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 #include "htinternal.hpp"
 
 static HTMutexShared gMutexAsm;

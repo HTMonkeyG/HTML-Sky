@@ -2,7 +2,7 @@
 // Basic APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
 #include "imgui.h"
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 #include "htinternal.hpp"
 
 static thread_local HTError gLastError = HTError_Success;

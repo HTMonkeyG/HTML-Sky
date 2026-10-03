@@ -5,7 +5,7 @@
 #include <map>
 #include <shared_mutex>
 #include <set>
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 #include "htinternal.hpp"
 
 typedef std::pair<PFN_HTEventCallback, HMODULE> EventCallbackInfo;

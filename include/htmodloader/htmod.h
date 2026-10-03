@@ -33,7 +33,7 @@
 #define __HTMOD_H__
 
 #include <windows.h>
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 
 #ifdef __cplusplus
 extern "C" {

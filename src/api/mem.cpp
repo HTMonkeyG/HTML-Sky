@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unordered_set>
 #include <mutex>
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 #include "htinternal.hpp"
 
 static std::mutex gMutex;

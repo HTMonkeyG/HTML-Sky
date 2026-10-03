@@ -1,4 +1,5 @@
 # Files
+package-lock.json
 
 # Wildcard files.
 *.a
@@ -17,3 +18,4 @@ pack/
 .VSCodeCounter/
 .idea/
 packaging/
+node_modules/

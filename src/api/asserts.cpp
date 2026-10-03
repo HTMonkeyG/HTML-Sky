@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "includes/htmodloader.h"
+#include "htmodloader/htmodloader.h"
 
 HTMLAPIATTR VOID HTMLAPI HTAssertImpl(
   LPCSTR expression,
