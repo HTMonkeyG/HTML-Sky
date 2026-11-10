@@ -166,6 +166,21 @@ HTMLAPIATTR HTStatus HTMLAPI HTImGuiDispatch(
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 }
 
+HTMLAPIATTR HTStatus HTMLAPI HTImGuiDispatchEx(
+  HTImGuiContextsEx *context
+) {
+  if (!context)
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+  if (!ImGui::GetCurrentContext())
+    return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
+
+  HTImGuiDispatch(&context->ctx);
+  context->pFontMonospace = (LPVOID)gFontMono;
+  context->pFontRegular = (LPVOID)gFontRegular;
+
+  return HTiErrAndRet(HTError_Success, HT_SUCCESS);
+}
+
 HTMLAPIATTR HTStatus HTMLAPI HTOptionGetCustom(
   HMODULE hModule,
   LPCSTR key,
