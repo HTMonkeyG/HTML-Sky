@@ -19,3 +19,11 @@ pack/
 .idea/
 packaging/
 node_modules/
+build/
+build-*/
+
+# CMake generated files.
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CMakeUserPresets.json

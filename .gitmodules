@@ -1,0 +1,9 @@
+[submodule "libraries/cJSON"]
+	path = libraries/cJSON
+	url = https://github.com/DaveGamble/cJSON
+[submodule "libraries/imgui"]
+	path = libraries/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "libraries/minhook"]
+	path = libraries/minhook
+	url = https://github.com/TsudaKageyu/minhook
