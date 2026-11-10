@@ -130,7 +130,7 @@ add_custom_target(minhook
   COMMAND "${HTMODLOADER_MINGW_MAKE}" -C "${MINHOOK_DIR_REL}"
           -f build/MinGW/Makefile libMinHook.a
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-  COMMENT "Building MinHook with its built-in Makefile"
+  COMMENT "Building MinHook..."
   VERBATIM
 )
 
@@ -186,6 +186,9 @@ target_compile_options(winhttp PRIVATE
   -ffunction-sections
   -fdata-sections
 )
+
+# The MinGW optimizer falsely reports this warning, so it is simply disabled.
+add_compile_options(-Wno-stringop-overread)
 
 target_link_libraries(winhttp PRIVATE
   imgui
