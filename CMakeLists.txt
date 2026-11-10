@@ -67,6 +67,7 @@ set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(LIBRARIES_DIR "${PROJECT_ROOT}/libraries")
 
 set(IMGUI_DIR "${LIBRARIES_DIR}/imgui")
+set(FREETYPE_DIR "${LIBRARIES_DIR}/freetype")
 set(MINHOOK_DIR "${LIBRARIES_DIR}/minhook")
 set(CJSON_DIR "${LIBRARIES_DIR}/cJSON")
 set(LEVELDB_DIR "${LIBRARIES_DIR}/leveldb")
@@ -89,6 +90,18 @@ endfunction()
 # Third-party libraries built from source.
 # ---------------------------------------------------------------------------
 
+# FreeType is a git submodule with its own CMake build system. ImGui uses it
+# as its font rasterizer when IMGUI_ENABLE_FREETYPE is defined.
+# Optional backends are disabled so the build stays self-contained; zlib comes
+# from FreeType's bundled copy.
+set(FT_DISABLE_ZLIB TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_HVF TRUE CACHE BOOL "" FORCE)
+add_subdirectory("${FREETYPE_DIR}" "${CMAKE_BINARY_DIR}/freetype" EXCLUDE_FROM_ALL)
+
 # Dear ImGui: core + Win32 / Vulkan / OpenGL3 backends.
 add_library(imgui STATIC
   "${IMGUI_DIR}/imgui.cpp"
@@ -98,6 +111,7 @@ add_library(imgui STATIC
   "${IMGUI_DIR}/backends/imgui_impl_win32.cpp"
   "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
   "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
+  "${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp"
 )
 target_include_directories(imgui PUBLIC
   "${IMGUI_DIR}"
@@ -112,7 +126,11 @@ target_include_directories(imgui SYSTEM PRIVATE
 #    mods can link against them through htmodloader.lib.
 #  - IME support is off by default for non-MSVC compilers; the loader needs it.
 target_compile_options(imgui PUBLIC "-DIMGUI_API=__declspec(dllexport)")
-target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS)
+target_compile_definitions(imgui PUBLIC
+  IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS
+  IMGUI_ENABLE_FREETYPE
+)
+target_link_libraries(imgui PRIVATE freetype)
 htmodloader_apply_common_flags(imgui)
 
 # MinHook is a git submodule that ships its own MinGW Makefile
