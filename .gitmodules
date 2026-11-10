@@ -10,3 +10,6 @@
 [submodule "libraries/leveldb"]
 	path = libraries/leveldb
 	url = https://github.com/google/leveldb
+[submodule "libraries/freetype"]
+	path = libraries/freetype
+	url = https://github.com/freetype/freetype
