@@ -695,6 +695,9 @@ void HTiBootstrap();
 extern bool gShowMainMenu
   , gShowDebugger;
 
+extern ImFont *gFontMono
+  , *gFontRegular;
+
 // Initialize ImGui context and window message hook.
 //
 // Backends should call this function at least once before calling
