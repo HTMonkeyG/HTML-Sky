@@ -5,6 +5,9 @@ This file contains the changelog of HTModLoader.
  Version 1.11.0 WIP
 -------------------------------------------------------------------------------
 
+Breaking Changes:
+- Removed zlib support.
+
 Changes:
 - Add CMakeLists.txt to build with cmake.
 
