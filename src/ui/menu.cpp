@@ -175,6 +175,8 @@ void HTiMenuConsole() {
   f32 height;
   bool reclaimFocus = false;
 
+  if (gFontMono) ImGui::PushFont(gFontMono);
+
   height = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
   if (ImGui::BeginChild(
     "ConsoleLog",
@@ -211,6 +213,8 @@ void HTiMenuConsole() {
     HTiAddConsoleLine(false, "%s", gConsoleInputBuffer);
     gConsoleInputBuffer[0] = 0;
   }
+
+  if (gFontMono) ImGui::PopFont();
 
   ImGui::SetItemDefaultFocus();
   if (reclaimFocus)
@@ -249,8 +253,8 @@ void HTiMenuSettings() {
  * Render mod list tab item.
  */
 void HTiMenuAbouts() {
-  ImGui::Text("HT's Mod Loader v" HTML_VERSION_NAME " by HTMonkeyG");
-  ImGui::Text("A general mod loader initially developed for Sky:CotL.");
+  ImGui::TextWrapped("HTModLoader v" HTML_VERSION_NAME " by HTMonkeyG");
+  ImGui::TextWrapped("A general mod loader initially developed for Sky:CotL.");
   ImGui::TextLinkOpenURL(
     "<https://www.github.com/HTMonkeyG/HTML-Sky>",
     "https://www.github.com/HTMonkeyG/HTML-Sky");

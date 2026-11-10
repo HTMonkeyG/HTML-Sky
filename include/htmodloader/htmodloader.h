@@ -214,6 +214,13 @@ typedef struct {
   LPVOID pImAllocatorUserData;
 } HTImGuiContexts;
 
+// Provides external font data.
+typedef struct {
+  HTImGuiContexts ctx;
+  LPVOID pFontRegular;
+  LPVOID pFontMonospace;
+} HTImGuiContextsEx;
+
 /**
  * Get ImGui global context for those mods which can't link ImGui from
  * htmodloader.lib.
@@ -226,6 +233,12 @@ typedef struct {
  */
 HTMLAPIATTR HTStatus HTMLAPI HTImGuiDispatch(
   HTImGuiContexts *context);
+
+/**
+ * Convert font data pointers from LPVOID to ImFont *
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTImGuiDispatchEx(
+  HTImGuiContextsEx *context);
 
 typedef int HTOptionType;
 enum HTOptionType_ {

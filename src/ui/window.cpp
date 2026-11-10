@@ -8,16 +8,12 @@ void HTiWindowMain(bool *show) {
   // Resize window on the first frame.
   ImGui::SetNextWindowSize(ImVec2(480, 320), ImGuiCond_FirstUseEver);
 
-  if (!ImGui::Begin("HTML Main Menu", show))
+  if (!ImGui::Begin("HTModLoader Main", show))
     return (void)ImGui::End();
 
   ImGui::PushID("HTMLWindowMain");
-  
+
   if (ImGui::BeginTabBar("HTNavMain")) {
-    if (ImGui::BeginTabItem("Abouts")) {
-      HTiMenuAbouts();
-      ImGui::EndTabItem();
-    }
     if (ImGui::BeginTabItem("Console")) {
       HTiMenuConsole();
       ImGui::EndTabItem();
@@ -27,6 +23,7 @@ void HTiWindowMain(bool *show) {
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Settings")) {
+      HTiMenuAbouts();
       HTiMenuSettings();
       ImGui::EndTabItem();
     }
