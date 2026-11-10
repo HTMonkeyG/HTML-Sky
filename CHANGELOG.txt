@@ -9,6 +9,8 @@ Breaking Changes:
 - Removed zlib support.
 
 Changes:
+- Added IME support to fix the issue where some games cannot use input methods.
+- Use freetype as the font rasterizer.
 - Add CMakeLists.txt to build with cmake.
 
 

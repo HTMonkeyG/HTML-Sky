@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <imm.h>
 #include "imgui.h"
 
 #include "htinternal.hpp"
@@ -267,6 +268,66 @@ static void HTHotKeyWndProc(
 }
 
 /**
+ * Handle IME messages explicitly.
+ *
+ * The Win32 backend of this ImGui version does not process WM_IME_* messages,
+ * so committed CJK characters would otherwise only be received when the game
+ * translates them into WM_CHAR. Handling them here makes input independent of
+ * the game's own window procedure.
+ *
+ * Returns true when the message was consumed.
+ */
+static bool HTiHandleImeMessage(
+  HWND hWnd,
+  UINT uMsg,
+  WPARAM wParam,
+  LPARAM lParam
+) {
+  ImGuiIO &io = ImGui::GetIO();
+
+  // Only capture IME input while an ImGui text field is active. Otherwise the
+  // game must keep receiving its own input.
+  if (!io.WantTextInput)
+    return false;
+
+  switch (uMsg) {
+    case WM_IME_STARTCOMPOSITION:
+    case WM_IME_ENDCOMPOSITION:
+    case WM_IME_COMPOSITION:
+      // Let the default IME window update the composition / candidate UI, but
+      // do not forward the message to the game.
+      if (IsWindowUnicode(hWnd))
+        DefWindowProcW(hWnd, uMsg, wParam, lParam);
+      else
+        DefWindowProcA(hWnd, uMsg, wParam, lParam);
+      return true;
+
+    case WM_IME_CHAR:
+      if (IsWindowUnicode(hWnd)) {
+        // For a Unicode window wParam already contains a UTF-16 code unit.
+        io.AddInputCharacterUTF16((ImWchar16)wParam);
+      } else {
+        // For an ANSI window wParam contains a single- or double-byte
+        // character. The high byte holds the lead byte of a DBCS character.
+        unsigned short character = (unsigned short)wParam;
+        if (IsDBCSLeadByte(HIBYTE(wParam)))
+          character = MAKEWORD(HIBYTE(wParam), LOBYTE(wParam));
+
+        wchar_t wide = 0;
+        MultiByteToWideChar(
+          CP_ACP, MB_PRECOMPOSED,
+          (const char *)&character, sizeof(character),
+          &wide, 1);
+        if (wide)
+          io.AddInputCharacterUTF16((ImWchar16)wide);
+      }
+      return true;
+  }
+
+  return false;
+}
+
+/**
  * The window process used to pass window messages to ImGui and block window
  * message delivery to the game.
  */
@@ -281,6 +342,12 @@ static LRESULT APIENTRY HTWndProc(
 
   // Dispatch the window message to ImGui.
   (void)ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+
+  // Handle IME messages explicitly (the Win32 backend ignores them), so the
+  // committed characters reach the active ImGui text field regardless of what
+  // the game does with WM_IME_* messages.
+  if (HTiHandleImeMessage(hWnd, uMsg, wParam, lParam))
+    return 0;
 
   // Block the message. We only check for the key down message, in order to
   // avoid strange behaviors e.g. continuely moving characters.
