@@ -114,6 +114,7 @@ add_library(imgui STATIC
   "${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp"
 )
 target_include_directories(imgui PUBLIC
+  "${PROJECT_ROOT}/src"
   "${IMGUI_DIR}"
   "${IMGUI_DIR}/backends"
 )
@@ -127,8 +128,7 @@ target_include_directories(imgui SYSTEM PRIVATE
 #  - IME support is off by default for non-MSVC compilers; the loader needs it.
 target_compile_options(imgui PUBLIC "-DIMGUI_API=__declspec(dllexport)")
 target_compile_definitions(imgui PUBLIC
-  IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS
-  IMGUI_ENABLE_FREETYPE
+  IMGUI_USER_CONFIG="ui/imconfig.h"
   IMGUI_DISABLE_DEFAULT_FONT
 )
 target_link_libraries(imgui PRIVATE freetype)
@@ -193,6 +193,9 @@ file(GLOB_RECURSE HTMODLOADER_SOURCES CONFIGURE_DEPENDS
   "${PROJECT_ROOT}/src/*.cpp"
 )
 
+# The MinGW optimizer falsely reports this warning, so it is simply disabled.
+add_compile_options(-Wno-stringop-overread)
+
 add_library(winhttp SHARED ${HTMODLOADER_SOURCES})
 
 target_include_directories(winhttp PRIVATE
@@ -211,9 +214,6 @@ target_compile_options(winhttp PRIVATE
   -ffunction-sections
   -fdata-sections
 )
-
-# The MinGW optimizer falsely reports this warning, so it is simply disabled.
-add_compile_options(-Wno-stringop-overread)
 
 target_link_libraries(winhttp PRIVATE
   imgui

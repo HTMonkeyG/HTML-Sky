@@ -9,6 +9,7 @@ Breaking Changes:
 - Removed zlib support.
 
 Changes:
+- Add standalone imconfig.h
 - Optimized font merging.
 - Load Microsoft YaHei an SegoeUI as default fonts.
 - Merged Settings and Abouts menu.
