@@ -7,3 +7,6 @@
 [submodule "libraries/minhook"]
 	path = libraries/minhook
 	url = https://github.com/TsudaKageyu/minhook
+[submodule "libraries/leveldb"]
+	path = libraries/leveldb
+	url = https://github.com/google/leveldb

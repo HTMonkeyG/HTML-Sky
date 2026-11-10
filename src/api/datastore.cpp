@@ -1,6 +1,6 @@
 #include <string>
 
-#include "leveldb_c.h"
+#include <leveldb/c.h>
 #include "htinternal.hpp"
 
 static leveldb_t *gLevelDB = nullptr;
@@ -14,7 +14,7 @@ i32 HTiInitLDB() {
   if (!options)
     return 0;
 
-  leveldb_options_set_compression(options, leveldb_zlib_compression);
+  leveldb_options_set_compression(options, leveldb_no_compression);
   leveldb_options_set_create_if_missing(options, 1);
 
   std::wstring dbPathWide{gPathDataWide};

@@ -134,6 +134,13 @@ add_custom_target(minhook
   VERBATIM
 )
 
+# LevelDB is a git submodule with its own CMake build system. Build it through
+# its CMakeLists.txt, with tests / benchmarks / install rules disabled.
+set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LEVELDB_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(LEVELDB_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory("${LEVELDB_DIR}" "${CMAKE_BINARY_DIR}/leveldb" EXCLUDE_FROM_ALL)
+
 # cJSON.
 add_library(cjson STATIC "${CJSON_DIR}/cJSON.c")
 target_include_directories(cjson PUBLIC "${CJSON_DIR}")
@@ -148,13 +155,12 @@ htmodloader_apply_common_flags(cjson)
 # directory, which the OS resolves through the working directory handle.
 # ---------------------------------------------------------------------------
 
-file(RELATIVE_PATH LEVELDB_LIB_DIR_REL "${CMAKE_BINARY_DIR}" "${LEVELDB_DIR}/lib")
 file(RELATIVE_PATH VULKAN_LIB_DIR_REL "${CMAKE_BINARY_DIR}" "${VULKAN_DIR}/Lib")
 file(RELATIVE_PATH EXPORTS_TXT_REL "${CMAKE_BINARY_DIR}" "${PROJECT_ROOT}/src/exports.txt")
 
 # These are plain linker names, resolved through the -L flags below.
-# (zlib ships as libz.a, hence -lz; MinHook's Makefile produces libMinHook.a.)
-set(HTMODLOADER_EXTERNAL_LIBS leveldb z vulkan-1 MinHook)
+# (MinHook's Makefile produces libMinHook.a.)
+set(HTMODLOADER_EXTERNAL_LIBS vulkan-1 MinHook)
 
 # ---------------------------------------------------------------------------
 # Main target: the proxy DLL (winhttp.dll).
@@ -193,6 +199,7 @@ add_compile_options(-Wno-stringop-overread)
 target_link_libraries(winhttp PRIVATE
   imgui
   cjson
+  leveldb
   ${HTMODLOADER_EXTERNAL_LIBS}
   gdi32
   dwmapi
@@ -209,7 +216,6 @@ target_link_options(winhttp PRIVATE
   -Wl,--gc-sections
   -Wl,-O3
   # Search paths for the external libraries (relative, see note above).
-  "-L${LEVELDB_LIB_DIR_REL}"
   "-L${VULKAN_LIB_DIR_REL}"
   "-L${MINHOOK_DIR_REL}"
   # Hide everything that is not explicitly exported (__declspec(dllexport)).
