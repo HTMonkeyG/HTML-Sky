@@ -129,6 +129,7 @@ target_compile_options(imgui PUBLIC "-DIMGUI_API=__declspec(dllexport)")
 target_compile_definitions(imgui PUBLIC
   IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS
   IMGUI_ENABLE_FREETYPE
+  IMGUI_DISABLE_DEFAULT_FONT
 )
 target_link_libraries(imgui PRIVATE freetype)
 htmodloader_apply_common_flags(imgui)

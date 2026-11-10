@@ -9,6 +9,7 @@ Breaking Changes:
 - Removed zlib support.
 
 Changes:
+- Load Microsoft YaHei an SegoeUI as default fonts.
 - Merged Settings and Abouts menu.
 - Added IME support to fix the issue where some games cannot use input methods.
 - Use freetype as the font rasterizer.
