@@ -4,6 +4,7 @@
 // ----------------------------------------------------------------------------
 
 #include <windows.h>
+#include <string.h>
 #include "MinHook.h"
 
 #include "htinternal.hpp"
@@ -22,6 +23,30 @@ typedef HWND (WINAPI *PFN_CreateWindowExW)(
 
 static PFN_CreateWindowExA fn_CreateWindowExA = nullptr;
 static PFN_CreateWindowExW fn_CreateWindowExW = nullptr;
+
+static std::string getModulePathA(HMODULE hModule) {
+  std::string buf(MAX_PATH, L'\0');
+  for (;;) {
+    const DWORD n = GetModuleFileNameA(
+      hModule, buf.data(), static_cast<DWORD>(buf.size()));
+    if (n == 0)
+      return {};
+    if (n < buf.size()) {
+      buf.resize(n);
+      return buf;
+    }
+    buf.resize(buf.size() * 2);
+  }
+}
+
+// Get the file name (without directory) of the current executable.
+static std::string getProcessNameA() {
+  const std::string path = getModulePathA(nullptr);
+  const size_t pos = path.find_last_of("\\/");
+  if (pos == std::string::npos)
+    return path;
+  return path.substr(pos + 1);
+}
 
 static i32 editionCheck(
   HTGameEdition edition
@@ -66,7 +91,7 @@ static i32 checkWindowAndSetupAW(
     return 0;
 
   // Set game edition and hWnd.
-  status.baseAddr = (void *)GetModuleHandleA("Minecraft.Windows.exe");
+  status.baseAddr = (void *)GetModuleHandleA(getProcessNameA().c_str());
   status.edition = edition;
   status.pid = GetCurrentProcessId();
   status.window = hWnd;
@@ -159,8 +184,14 @@ static HWND WINAPI hook_CreateWindowExW(
   return result;
 }
 
+// Return non-zero if the executable name of current process starts with
+// HTTexts_ExeNamePrefixA, so that renamed builds are recognized as MCBE too.
 int HTi_ImplMCBE_ExpectProcess() {
-  return !!GetModuleHandleA(HT_ImplMCBE_ExecutableName);
+  const std::string name = getProcessNameA();
+  if (name.empty())
+    return 0;
+
+  return _strnicmp(name.c_str(), HT_ImplMCBE_ExecutablePrefix, sizeof(HT_ImplMCBE_ExecutablePrefix) - 1) == 0;
 }
 
 /**
@@ -175,7 +206,10 @@ int HTi_ImplMCBE_Init() {
     return 0;
 
   HTiSetGameBackendName(HT_ImplMCBE_Name);
-  HTiSetGameProcessName(HT_ImplMCBE_ExecutableName);
+
+  // Use the actual executable name, which may have a different postfix.
+  const std::string processName = getProcessNameA();
+  HTiSetGameProcessName(processName.c_str());
 
   s = MH_CreateHookApiEx(
     L"user32.dll",

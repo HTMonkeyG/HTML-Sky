@@ -34,6 +34,6 @@
 #define HT_ImplMCBE_EditionAll         0x00000006
 
 #define HT_ImplMCBE_Name               "Impl_MCBE"
-#define HT_ImplMCBE_ExecutableName     "Minecraft.Windows.exe"
+#define HT_ImplMCBE_ExecutablePrefix   "Minecraft.Windows"
 
 #endif
