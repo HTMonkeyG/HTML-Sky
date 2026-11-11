@@ -9,12 +9,14 @@
 #include <vector>
 #include <algorithm>
 
-#include "htinternal.hpp"
+#include "utils/pathutils.hpp"
 
 #define HTiWin32PathSeparator L'\\'
 #define HTiPosixPathSeparator L'/'
 
-static std::wstring getCurrentDirectory() {
+namespace {
+
+std::wstring getCurrentDirectory() {
   DWORD len = GetCurrentDirectoryW(0, nullptr);
   if (!len)
     return L"";
@@ -28,7 +30,7 @@ static std::wstring getCurrentDirectory() {
   return result;
 }
 
-static std::wstring toLowerCase(
+std::wstring toLowerCase(
   const std::wstring &s
 ) {
   if (s.empty())
@@ -43,7 +45,7 @@ static std::wstring toLowerCase(
   return result;
 }
 
-static std::wstring repeat(
+std::wstring repeat(
   const std::wstring &s,
   size_t c
 ) {
@@ -60,7 +62,7 @@ static std::wstring repeat(
   return result;
 }
 
-static std::wstring join(
+std::wstring join(
   const std::vector<std::wstring> &array,
   wchar_t separator
 ) {
@@ -107,7 +109,7 @@ std::vector<T> slice(
   return std::vector<T>{arr.begin() + start, arr.begin() + end};
 }
 
-static std::vector<std::wstring> split(
+std::vector<std::wstring> split(
   const std::wstring &s,
   wchar_t separator
 ) {
@@ -128,25 +130,25 @@ static std::vector<std::wstring> split(
   return result;
 }
 
-static inline bool isWin32PathSeparator(
+bool isWin32PathSeparator(
   wchar_t ch
 ) {
   return ch == HTiWin32PathSeparator;
 }
 
-static inline bool isPosixPathSeparator(
+bool isPosixPathSeparator(
   wchar_t ch
 ) {
   return ch == HTiPosixPathSeparator;
 }
 
-static inline bool isPathSeparator(
+bool isPathSeparator(
   wchar_t ch
 ) {
   return isPosixPathSeparator(ch) || isWin32PathSeparator(ch);
 }
 
-static bool isWin32ReservedName(
+bool isWin32ReservedName(
   const std::wstring &path,
   size_t colonIndex
 ) {
@@ -171,7 +173,7 @@ static bool isWin32ReservedName(
   return false;
 }
 
-static inline bool isWin32DeviceRoot(
+bool isWin32DeviceRoot(
   wchar_t ch
 ) {
   return (ch >= L'A' && ch <= L'Z')
@@ -179,7 +181,7 @@ static inline bool isWin32DeviceRoot(
 }
 
 // Resolves . and .. elements in a path with directory names.
-static std::wstring normalizeString(
+std::wstring normalizeString(
   const std::wstring &path,
   bool allowAboveRoot,
   wchar_t separator
@@ -254,7 +256,11 @@ static std::wstring normalizeString(
   return res;
 }
 
-std::wstring HTiPathNormalize(
+} // namespace <annoymous>
+
+namespace HTiPathUtils {
+
+std::wstring Normalize(
   const std::wstring &path
 ) {
   size_t len = wcslen(path.c_str());
@@ -397,7 +403,7 @@ std::wstring HTiPathNormalize(
   return isAbsolute ? device + L"\\" + tail : device + tail;
 }
 
-std::wstring HTiPathJoin(
+std::wstring Join(
   const std::vector<std::wstring> &args
 ) {
   if (!args.size())
@@ -407,14 +413,14 @@ std::wstring HTiPathJoin(
     , joined = join(args, L'\\');
 
   // Make sure that the joined path doesn't start with two slashes, because
-  // HTiPathNormalize() will mistake it for a UNC path then.
+  // Normalize() will mistake it for a UNC path then.
   //
   // This step is skipped when it is very clear that the user actually
   // intended to point at a UNC path. This is assumed when the first
   // non-empty string arguments starts with exactly two slashes followed by
   // at least one more non-slash character.
   //
-  // Note that for HTiPathNormalize() to treat a path as a UNC path it needs to
+  // Note that for Normalize() to treat a path as a UNC path it needs to
   // have at least 2 components, so we don't filter for that here.
   // This means that the user can use join to construct UNC paths from
   // a server name and a share name; for example:
@@ -422,7 +428,7 @@ std::wstring HTiPathJoin(
   // std::vector<const wchar_t *> args = {
   //   L"//server", L"share"
   // };
-  // HTiPathJoin(args); -> L"\\\\server\\share\\"
+  // Join(args); -> L"\\\\server\\share\\"
   bool needsReplace = true;
   size_t slashCount = 0;
   if (isPathSeparator(firstPart[0])) {
@@ -486,10 +492,10 @@ std::wstring HTiPathJoin(
     return result;
   }
 
-  return HTiPathNormalize(joined);
+  return Normalize(joined);
 }
 
-std::wstring HTiPathResolve(
+std::wstring Resolve(
   const std::vector<std::wstring> &args
 ) {
   std::wstring resolvedDevice
@@ -660,15 +666,15 @@ std::wstring HTiPathResolve(
     : L".";
 }
 
-std::wstring HTiPathRelative(
+std::wstring Relative(
   const std::wstring &fromRef,
   const std::wstring &toRef
 ) {
   if (fromRef == toRef)
     return L"";
 
-  auto fromOrig = HTiPathResolve({fromRef});
-  auto toOrig = HTiPathResolve({toRef});
+  auto fromOrig = Resolve({fromRef});
+  auto toOrig = Resolve({toRef});
 
   if (fromOrig == toOrig)
     return L"";
@@ -806,7 +812,7 @@ std::wstring HTiPathRelative(
   return toOrig.substr(toStart, toEnd - toStart);
 }
 
-bool HTiPathIsAbsolute(
+bool IsAbsolute(
   const std::wstring &path
 ) {
   if (path.empty())
@@ -821,3 +827,5 @@ bool HTiPathIsAbsolute(
       && isPathSeparator(path[2])
     );
 }
+
+} // namespace HTiPathUtils

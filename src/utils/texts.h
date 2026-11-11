@@ -1,6 +1,6 @@
 #define HTTexts_ModLoaderPackageName "htmodloader"
-#define HTTexts_ModLoaderName "HT's Mod Loader"
-#define HTTexts_ModLoaderDesc "HTML basic apis."
+#define HTTexts_ModLoaderName "HTModLoader API"
+#define HTTexts_ModLoaderDesc "HTModLoader basic apis."
 
 // Modified from ImGui.
 static const char *const HTKeyNames[] = {
